@@ -13,3 +13,7 @@ Deep Gold (Active) – #7A5F36 (RGB: 122, 95, 54) Use: Button active or presse
 Accent and UI Support Colors Warm Sand – #D6C3A3 (RGB: 214, 195, 163) Use: Subtle highlights, badges
 Light Beige Brown – #CBBBAA (RGB: 203, 187, 170) Use: Borders, dividers, outlines
 Clay Brown – #9C7B6A (RGB: 156, 123, 106) Use: Icons, inactive UI elements
+
+Status and Feedback Colors (Optional) Olive Green – #6F7F5A (RGB: 111, 127, 90) Use: Success messages, confirmations
+Muted Amber – #C49A3A (RGB: 196, 154, 58) Use: Warning messages, alerts
+Soft Brick Red – #A45A4A (RGB: 164, 90, 74) Use: Error messages, destructive actions
