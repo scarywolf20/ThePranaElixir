@@ -5,3 +5,7 @@ Off White – #FAF7F3 (RGB: 250, 247, 243) Use: Cards, modals, containers
 Text Colors Deep Brown – #6C4A40 (RGB: 108, 74, 64) Use: Primary text, headings, body text
 Muted Brown – #8B6A5E (RGB: 139, 106, 94) Use: Secondary text, descriptions
 Light Taupe – #B7A79C (RGB: 183, 167, 156) Use: Disabled text, placeholders, helper text
+
+Primary and Action Colors Logo Dark Gold – #A98752 (RGB: 169, 135, 82) Use: Primary buttons, links, highlights
+Dark Gold (Hover) – #8F7243 (RGB: 143, 114, 67) Use: Button hover state
+Deep Gold (Active) – #7A5F36 (RGB: 122, 95, 54) Use: Button active or pressed state
