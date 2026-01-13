@@ -9,7 +9,7 @@ export default function App() {
           </p>
           <button
             type="button"
-            className="mt-6 rounded-lg bg-primary px-4 py-2 font-medium text-bg-surface hover:bg-primary-hover active:bg-primary-active"
+            className="mt-6 rounded-lg bg-primary-button px-4 py-2 font-medium text-bg-surface hover:bg-primary-hover active:bg-primary-active"
           >
             Primary Action
           </button>
