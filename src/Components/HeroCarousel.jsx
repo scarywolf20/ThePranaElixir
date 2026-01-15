@@ -6,9 +6,9 @@ const HeroCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   
   const slides = [
-    { id: 1, title: "WAX TABLETS", image: "/path-to-your-image.png" },
+    { id: 1, title: "WAX TABLETS", image: "https://images.unsplash.com/photo-1603006905003-be475563bc59" },
     { id: 2, title: "SOY CANDLES", image: "https://images.unsplash.com/photo-1603006905003-be475563bc59" },
-    { id: 3, title: "GENTLE SOAPS", image: "https://images.unsplash.com/photo-1600857062241-98e5dba7f214" }
+    { id: 3, title: "GENTLE SOAPS", image: "https://images.unsplash.com/photo-1603006905003-be475563bc59" }
   ];
 
   useEffect(() => {
@@ -23,10 +23,10 @@ const HeroCarousel = () => {
       <AnimatePresence mode="wait">
         <motion.div
           key={currentIndex}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1 }}
+          initial={{ x: 100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: -100, opacity: 0 }}
+          transition={{ duration: 0.8, ease: "easeInOut" }}
           className="absolute inset-0 w-full h-full"
         >
           {/* Slide Image */}
