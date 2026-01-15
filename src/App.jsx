@@ -3,6 +3,7 @@ import HeroCarousel from "./Components/HeroCarousel"
 import ProductsSection from "./Components/Products"
 import AboutUs from "./Components/AboutUs"
 import BestSellers from "./Components/BestSellers"
+import Testimonials from "./Components/Testimonials"
 function App() {
   return (
     <div>
@@ -11,6 +12,7 @@ function App() {
       <ProductsSection />
       <AboutUs />
       <BestSellers />
+      <Testimonials />
     </div>
   )
 }
