@@ -27,7 +27,7 @@ const Navbar = () => {
       {/* 2. Logo Section - Reduced padding */}
       <div className="flex justify-center py-4">
         <h1 className="text-3xl md:text-4xl tracking-[0.35em] text-text-primary font-light ">
-          mud and moon
+          The Prana Elixir
         </h1>
       </div>
 
@@ -44,13 +44,13 @@ const Navbar = () => {
       {/* 4. Navigation Links Row - Reduced padding */}
       <div className="max-w-7xl mx-auto px-8 flex items-center justify-between py-3">
         
-        {/* Socials - Slightly larger icons */}
-        <div className="flex gap-5 text-icon">
+        {/* Socials - Larger icons with better spacing */}
+        <div className="flex gap-6 text-icon">
           <button className="hover:text-primary-button cursor-pointer transition-colors">
-            <FaInstagram />
+            <FaInstagram className="text-xl" />
           </button>
           <button className="hover:text-primary-button cursor-pointer transition-colors">
-           <FaWhatsapp />
+           <FaWhatsapp className="text-xl" />
           </button>
         </div>
 
@@ -107,16 +107,16 @@ const Navbar = () => {
           ))}
         </ul>
 
-        {/* Action Icons - Slightly larger */}
+        {/* Action Icons - Larger with perfect spacing */}
         <div className="flex gap-6 text-text-primary">
           <button className="hover:text-primary-button cursor-pointer transition-all hover:scale-105">
-            <FaCartShopping />
+            <FaCartShopping className="text-xl" />
           </button>
           <button className="hover:text-primary-button cursor-pointer transition-all hover:scale-105">
-            <FaUser />
+            <FaUser className="text-xl" />
           </button>
           <button className="hover:text-primary-button cursor-pointer transition-all hover:scale-105">
-            <FaSearch />
+            <FaSearch className="text-xl" />
           </button>
         </div>
       </div>
