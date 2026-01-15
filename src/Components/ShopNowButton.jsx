@@ -7,7 +7,7 @@ const ShopNowButton = () => {
       {/* White Pill Background with hover fill effect */}
       <div className="relative h-16 pl-20 pr-12 rounded-full flex items-center shadow-lg overflow-hidden transition-all group-hover:shadow-xl">
         {/* White background */}
-        <div className="absolute inset-0 bg-white z-0" />
+        <div className="absolute inset-0 bg-bg-section z-0" />
         
         {/* Brown background that fills from left to right */}
         <div className="absolute inset-0 bg-text-primary origin-left scale-x-0 transition-transform duration-700 ease-out group-hover:scale-x-100 z-0" />
