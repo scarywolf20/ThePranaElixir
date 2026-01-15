@@ -40,15 +40,15 @@ const ProductSection = () => {
       <div className="max-w-7xl mx-auto">
         
         {/* Header */}
-        <div className="flex flex-col items-center mb-16">
+        {/* <div className="flex flex-col items-center mb-16">
           <h2 className="text-text-primary text-3xl tracking-[0.3em] font-light uppercase mb-8">
             Our Collection
-          </h2>
-          <div 
+          </h2> */}
+          {/* <div 
             className="w-full h-[1px]" 
             style={dashedLineStyle}
-          />
-        </div>
+          /> */}
+        {/* </div> */}
 
         {/* Slider Wrapper */}
         <div className="relative px-2">
@@ -90,9 +90,9 @@ const ProductSection = () => {
         </div>
 
         {/* Section Footer */}
-        <div className="flex justify-center mt-16">
+        {/* <div className="flex justify-center mt-16">
           <ShopNowButton />
-        </div>
+        </div> */}
       </div>
     </section>
   );
