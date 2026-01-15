@@ -1,26 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import ShopNowButton from './ShopNowButton';
 
 const ProductSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const products = [
-    { id: 1, title: "POSTCARDS", price: "700/-", image: "https://images.unsplash.com/photo-1579208575657-c595a05383b7?auto=format&fit=crop&q=80" },
-    { id: 2, title: "BATH ACCESSORIES", price: "295/-", image: "https://images.unsplash.com/photo-1600857062241-98e5dba7f214?auto=format&fit=crop&q=80" },
-    { id: 3, title: "GENTLE HABITS SOAPS", price: "250/-", image: "https://images.unsplash.com/photo-1605651202774-7d573fd3f12d?auto=format&fit=crop&q=80" },
-    { id: 4, title: "WAX TABLETS", price: "450/-", image: "https://images.unsplash.com/photo-1603006905003-be475563bc59?auto=format&fit=crop&q=80" },
-    { id: 5, title: "SOY CANDLES", price: "850/-", image: "https://images.unsplash.com/photo-1596433809252-260c2745dfdd?auto=format&fit=crop&q=80" },
-  ];
+  // Memoize products array to prevent recreation on every render
+  const products = useMemo(() => [
+    { id: 1, title: "POSTCARDS", price: "700/-", image: "https://images.unsplash.com/photo-1579208575657-c595a05383b7?auto=format&fit=crop&q=80&w=800" },
+    { id: 2, title: "BATH ACCESSORIES", price: "295/-", image: "https://images.unsplash.com/photo-1600857062241-98e5dba7f214?auto=format&fit=crop&q=80&w=800" },
+    { id: 3, title: "GENTLE HABITS SOAPS", price: "250/-", image: "https://images.unsplash.com/photo-1605651202774-7d573fd3f12d?auto=format&fit=crop&q=80&w=800" },
+    { id: 4, title: "WAX TABLETS", price: "450/-", image: "https://images.unsplash.com/photo-1603006905003-be475563bc59?auto=format&fit=crop&q=80&w=800" },
+    { id: 5, title: "SOY CANDLES", price: "850/-", image: "https://images.unsplash.com/photo-1596433809252-260c2745dfdd?auto=format&fit=crop&q=80&w=800" },
+  ], []);
 
   const maxIndex = products.length - 3;
 
-  const nextSlide = () => {
-    if (currentIndex < maxIndex) setCurrentIndex(prev => prev + 1);
-  };
+  // Memoize callback functions to prevent recreation
+  const nextSlide = useCallback(() => {
+    setCurrentIndex(prev => Math.min(prev + 1, maxIndex));
+  }, [maxIndex]);
 
-  const prevSlide = () => {
-    if (currentIndex > 0) setCurrentIndex(prev => prev - 1);
-  };
+  const prevSlide = useCallback(() => {
+    setCurrentIndex(prev => Math.max(prev - 1, 0));
+  }, []);
+
+  // Memoize inline styles
+  const dashedLineStyle = useMemo(() => ({
+    backgroundImage: `linear-gradient(to right, #CBBBAA 25%, transparent 25%)`,
+    backgroundSize: '20px 1px',
+    backgroundRepeat: 'repeat-x'
+  }), []);
+
+  const sliderTransform = useMemo(() => ({
+    transform: `translateX(-${currentIndex * (100 / 3)}%)`
+  }), [currentIndex]);
 
   return (
     <section className="bg-bg-main py-16 px-4 md:px-12 overflow-hidden">
@@ -33,22 +46,21 @@ const ProductSection = () => {
           </h2>
           <div 
             className="w-full h-[1px]" 
-            style={{
-              backgroundImage: `linear-gradient(to right, #CBBBAA 25%, transparent 25%)`,
-              backgroundSize: '20px 1px',
-              backgroundRepeat: 'repeat-x'
-            }}
+            style={dashedLineStyle}
           />
         </div>
 
-        {/* Slider Wrapper - Added extra padding to prevent edge cutting */}
+        {/* Slider Wrapper */}
         <div className="relative px-2">
           
           {/* Navigation Arrows */}
           <button 
             onClick={prevSlide}
             disabled={currentIndex === 0}
-            className={`absolute -left-8 md:-left-12 top-[40%] z-20 text-4xl text-text-primary transition-all cursor-pointer ${currentIndex === 0 ? 'opacity-10' : 'opacity-60 hover:opacity-100'}`}
+            aria-label="Previous products"
+            className={`absolute -left-8 md:-left-12 top-[40%] z-20 text-4xl text-text-primary transition-opacity duration-200 cursor-pointer ${
+              currentIndex === 0 ? 'opacity-10 cursor-not-allowed' : 'opacity-60 hover:opacity-100'
+            }`}
           >
             &#8249;
           </button>
@@ -56,7 +68,10 @@ const ProductSection = () => {
           <button 
             onClick={nextSlide}
             disabled={currentIndex >= maxIndex}
-            className={`absolute -right-8 md:-right-12 top-[40%] z-20 text-4xl text-text-primary transition-all cursor-pointer ${currentIndex >= maxIndex ? 'opacity-10' : 'opacity-60 hover:opacity-100'}`}
+            aria-label="Next products"
+            className={`absolute -right-8 md:-right-12 top-[40%] z-20 text-4xl text-text-primary transition-opacity duration-200 cursor-pointer ${
+              currentIndex >= maxIndex ? 'opacity-10 cursor-not-allowed' : 'opacity-60 hover:opacity-100'
+            }`}
           >
             &#8250;
           </button>
@@ -64,36 +79,11 @@ const ProductSection = () => {
           {/* Visible Area */}
           <div className="overflow-hidden">
             <div 
-              className="flex transition-transform duration-500 ease-out"
-              style={{ 
-                transform: `translateX(-${currentIndex * (100 / 3)}%)`,
-                // Adding gap via margin to items instead of parent gap to prevent clipping
-              }}
+              className="flex transition-transform duration-500 ease-out will-change-transform"
+              style={sliderTransform}
             >
               {products.map((product) => (
-                <div 
-                  key={product.id} 
-                  className="w-full md:w-1/3 flex-shrink-0 px-4 flex flex-col items-center"
-                >
-                  {/* Card Image */}
-                  <div className="w-full aspect-[3/4.2] overflow-hidden rounded-[45px] bg-bg-surface shadow-sm">
-                    <img 
-                      src={product.image} 
-                      alt={product.title} 
-                      className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
-                    />
-                  </div>
-
-                  {/* Product Details */}
-                  <div className="mt-8 text-center">
-                    <h3 className="text-text-primary text-lg tracking-[0.18em] font-serif uppercase mb-1">
-                      {product.title}
-                    </h3>
-                    <p className="text-text-secondary text-sm tracking-widest italic">
-                      From Rs.{product.price}
-                    </p>
-                  </div>
-                </div>
+                <ProductCard key={product.id} product={product} />
               ))}
             </div>
           </div>
@@ -107,5 +97,35 @@ const ProductSection = () => {
     </section>
   );
 };
+
+// Separate ProductCard component with React.memo for optimization
+const ProductCard = React.memo(({ product }) => {
+  return (
+    <div className="w-full md:w-1/3 flex-shrink-0 px-4 flex flex-col items-center">
+      {/* Card Image */}
+      <div className="w-full aspect-[3/4.2] overflow-hidden rounded-[45px] bg-bg-surface shadow-sm">
+        <img 
+          src={product.image} 
+          alt={product.title}
+          loading="lazy"
+          decoding="async"
+          className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
+        />
+      </div>
+
+      {/* Product Details */}
+      <div className="mt-8 text-center">
+        <h3 className="text-text-primary text-lg tracking-[0.18em] font-serif uppercase mb-1">
+          {product.title}
+        </h3>
+        <p className="text-text-secondary text-sm tracking-widest italic">
+          From Rs.{product.price}
+        </p>
+      </div>
+    </div>
+  );
+});
+
+ProductCard.displayName = 'ProductCard';
 
 export default ProductSection;
