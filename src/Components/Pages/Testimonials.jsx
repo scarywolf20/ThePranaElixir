@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-
 const testimonials = [
   { id: 1, text: "The Banaras Stripe soap is a game changer. My skin has never felt more hydrated and clean.", author: "Ananya R." },
   { id: 2, text: "I love the commitment to natural ingredients. The packaging is as beautiful as the product.", author: "Marcus T." },
   { id: 3, text: "These soaps are works of art. They make my whole bathroom smell like a botanical garden.", author: "Sarah L." },
   { id: 4, text: "Mindfully made and beautifully delivered. This is my new favorite self-care ritual.", author: "David K." },
+  { id: 5, text: "The quality is exceptional. I've recommended these to all my friends and family.", author: "Priya S." },
+  { id: 6, text: "A luxurious experience every time. The scents are divine and long-lasting.", author: "James M." },
 ];
 
 const Testimonials = () => {
@@ -14,14 +15,15 @@ const Testimonials = () => {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setIndex((prev) => (prev + 1) % (testimonials.length - 1));
+      setIndex((prev) => (prev + 1) % (testimonials.length - 2));
     }, 4000);
     return () => clearInterval(timer);
   }, []);
 
   const visibleTestimonials = [
     testimonials[index],
-    testimonials[(index + 1) % testimonials.length]
+    testimonials[(index + 1) % testimonials.length],
+    testimonials[(index + 2) % testimonials.length]
   ];
 
   return (
@@ -34,20 +36,18 @@ const Testimonials = () => {
       </header>
 
       {/* The container needs a fixed max-width and relative positioning */}
-      <div className="relative max-w-3xl mx-auto min-h-[300px]">
+      <div className="relative max-w-6xl mx-auto min-h-[300px]">
         <AnimatePresence mode="popLayout" initial={false}>
           <motion.div 
             key={index}
-            // Using opacity + x for a smooth slide
             initial={{ opacity: 0, x: 100 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -100 }}
-            // Use a slightly snappier spring for less "floaty" feel
             transition={{ 
               x: { type: "spring", stiffness: 300, damping: 30 },
               opacity: { duration: 0.4 }
             }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full"
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full"
           >
             {visibleTestimonials.map((item) => (
               <div
@@ -59,7 +59,7 @@ const Testimonials = () => {
                 
                 <div className="relative z-10">
                   <p className="text-sm md:text-base font-light leading-relaxed text-[#6D5447] group-hover:text-white transition-colors duration-500 italic mb-4">
-                    “{item.text}”
+                    "{item.text}"
                   </p>
                   <p className="text-[10px] tracking-[0.2em] font-bold text-[#6D5447] group-hover:text-white transition-colors duration-500 uppercase">
                     — {item.author}
@@ -73,7 +73,7 @@ const Testimonials = () => {
 
       {/* Indicators */}
       <div className="flex justify-center gap-2 mt-10">
-        {Array.from({ length: testimonials.length - 1 }).map((_, i) => (
+        {Array.from({ length: testimonials.length - 2 }).map((_, i) => (
           <button
             key={i}
             onClick={() => setIndex(i)}
