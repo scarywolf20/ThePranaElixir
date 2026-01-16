@@ -4,6 +4,8 @@ import {
   Package, 
   ShoppingCart, 
   Image as ImageIcon, 
+  MessageSquareQuote, // New Icon
+  Star,               // New Icon
   Plus, 
   Trash2, 
   Edit2, 
@@ -30,6 +32,11 @@ const initialHeroSlides = [
   { id: 2, title: "Handcrafted Pottery", subtitle: "Made with love", image: "url_to_image_2" },
 ];
 
+const initialTestimonials = [
+  { id: 1, name: "Sarah Jenkins", text: "The ceramic vase is absolutely stunning. The earthy texture fits my home perfectly.", rating: 5 },
+  { id: 2, name: "Michael Ross", text: "Fast shipping and great packaging, but the color was slightly lighter than expected.", rating: 4 },
+];
+
 // --- COMPONENTS ---
 
 // 1. PRODUCTS COMPONENT
@@ -45,10 +52,8 @@ const ProductsManager = () => {
   const handleSave = (e) => {
     e.preventDefault();
     if (currentProduct.id) {
-      // Update
       setProducts(products.map(p => p.id === currentProduct.id ? currentProduct : p));
     } else {
-      // Add New
       setProducts([...products, { ...currentProduct, id: Date.now() }]);
     }
     setIsEditing(false);
@@ -223,7 +228,6 @@ const HeroManager = () => {
         {slides.map((slide, index) => (
           <div key={slide.id} className="bg-bg-surface border border-border rounded-xl p-6 flex flex-col md:flex-row gap-6 items-start">
             <div className="w-full md:w-1/3 aspect-video bg-bg-section rounded-lg flex items-center justify-center text-text-muted border border-dashed border-border">
-              {/* In a real app, this is an <img> tag */}
               <div className="text-center">
                 <ImageIcon className="mx-auto mb-2" />
                 <span className="text-xs">Preview: Slide {index + 1}</span>
@@ -266,9 +270,117 @@ const HeroManager = () => {
   );
 };
 
+// 4. TESTIMONIALS COMPONENT (NEW)
+const TestimonialsManager = () => {
+  const [testimonials, setTestimonials] = useState(initialTestimonials);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentTestimonial, setCurrentTestimonial] = useState(null);
+
+  const handleDelete = (id) => {
+    setTestimonials(testimonials.filter(t => t.id !== id));
+  };
+
+  const handleSave = (e) => {
+    e.preventDefault();
+    if (currentTestimonial.id) {
+      setTestimonials(testimonials.map(t => t.id === currentTestimonial.id ? currentTestimonial : t));
+    } else {
+      setTestimonials([...testimonials, { ...currentTestimonial, id: Date.now() }]);
+    }
+    setIsEditing(false);
+    setCurrentTestimonial(null);
+  };
+
+  const openEdit = (testimonial = { name: '', text: '', rating: 5 }) => {
+    setCurrentTestimonial(testimonial);
+    setIsEditing(true);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-text-primary">Testimonials</h2>
+        <button 
+          onClick={() => openEdit()}
+          className="bg-primary-button hover:bg-primary-hover text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
+        >
+          <Plus size={18} /> Add Review
+        </button>
+      </div>
+
+      {isEditing && (
+        <div className="bg-bg-surface p-6 rounded-xl border border-border shadow-sm">
+          <h3 className="text-lg font-semibold mb-4 text-text-secondary">
+            {currentTestimonial.id ? 'Edit Review' : 'Add New Review'}
+          </h3>
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input 
+                placeholder="Customer Name" 
+                className="bg-bg-main border border-border p-3 rounded-lg focus:outline-none focus:border-primary-button text-text-primary placeholder-text-muted"
+                value={currentTestimonial.name}
+                onChange={(e) => setCurrentTestimonial({...currentTestimonial, name: e.target.value})}
+              />
+              <div className="flex items-center gap-2 bg-bg-main border border-border p-3 rounded-lg">
+                <span className="text-text-secondary text-sm">Rating:</span>
+                <input 
+                  type="number" 
+                  min="1" 
+                  max="5"
+                  className="bg-transparent outline-none text-text-primary font-bold w-12"
+                  value={currentTestimonial.rating}
+                  onChange={(e) => setCurrentTestimonial({...currentTestimonial, rating: parseInt(e.target.value)})}
+                />
+                <Star size={16} className="text-accent fill-accent" />
+              </div>
+            </div>
+            <textarea 
+              placeholder="Review Text" 
+              rows="3"
+              className="w-full bg-bg-main border border-border p-3 rounded-lg focus:outline-none focus:border-primary-button text-text-primary placeholder-text-muted"
+              value={currentTestimonial.text}
+              onChange={(e) => setCurrentTestimonial({...currentTestimonial, text: e.target.value})}
+            />
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 text-text-secondary hover:text-text-primary cursor-pointer">Cancel</button>
+              <button type="submit" className="bg-primary-button text-white px-6 py-2 rounded-lg hover:bg-primary-hover cursor-pointer">Save Review</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {testimonials.map((t) => (
+          <div key={t.id} className="bg-bg-surface p-6 rounded-xl border border-border shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-start mb-2">
+                <h4 className="font-bold text-text-primary">{t.name}</h4>
+                <div className="flex gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={14} className={`${i < t.rating ? "text-accent fill-accent" : "text-border"}`} />
+                  ))}
+                </div>
+              </div>
+              <p className="text-text-secondary text-sm italic">"{t.text}"</p>
+            </div>
+            <div className="flex justify-end gap-3 mt-4 border-t border-border pt-3">
+              <button onClick={() => openEdit(t)} className="text-text-secondary hover:text-primary-button cursor-pointer">
+                <Edit2 size={16} />
+              </button>
+              <button onClick={() => handleDelete(t.id)} className="text-danger hover:text-red-700 cursor-pointer">
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // --- MAIN LAYOUT COMPONENT ---
 
-const AdminDashboard = () => {
+const AdminDashboard = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState('products');
 
   const renderContent = () => {
@@ -276,6 +388,7 @@ const AdminDashboard = () => {
       case 'products': return <ProductsManager />;
       case 'orders': return <OrdersManager />;
       case 'hero': return <HeroManager />;
+      case 'testimonials': return <TestimonialsManager />; // Added case
       default: return <ProductsManager />;
     }
   };
@@ -285,7 +398,7 @@ const AdminDashboard = () => {
       {/* Sidebar */}
       <aside className="w-64 bg-bg-section border-r border-border flex flex-col fixed h-full">
         <div className="p-8">
-          <h1 className="text-2xl font-serif font-bold text-text-primary tracking-wide">STORE<span className="text-primary-button">ADMIN</span></h1>
+          <h1 className="text-2xl font-serif font-bold text-text-primary ">The Prana Elixir</h1>
         </div>
 
         <nav className="flex-1 px-4 space-y-2">
@@ -307,6 +420,13 @@ const AdminDashboard = () => {
             active={activeTab === 'hero'} 
             onClick={() => setActiveTab('hero')} 
           />
+          {/* New Sidebar Item */}
+          <SidebarItem 
+            icon={<MessageSquareQuote size={20} />} 
+            label="Testimonials" 
+            active={activeTab === 'testimonials'} 
+            onClick={() => setActiveTab('testimonials')} 
+          />
         </nav>
 
         <div className="p-6 border-t border-border">
@@ -314,7 +434,7 @@ const AdminDashboard = () => {
             <div className="w-10 h-10 rounded-full bg-bg-surface border border-border flex items-center justify-center text-text-primary font-bold">A</div>
             <div>
               <p className="text-sm font-bold text-text-primary">Admin User</p>
-              <p className="text-xs text-text-muted">Logout</p>
+              <button onClick={onLogout} className="text-xs text-text-muted hover:text-danger cursor-pointer text-left">Logout</button>
             </div>
           </div>
         </div>
