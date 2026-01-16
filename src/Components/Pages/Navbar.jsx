@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FaUser } from "react-icons/fa"
 import { FaSearch } from "react-icons/fa";
 import { FaCartShopping } from "react-icons/fa6";
@@ -112,9 +113,12 @@ const Navbar = () => {
           <button className="hover:text-primary-button cursor-pointer transition-all hover:scale-105">
             <FaCartShopping className="text-xl" />
           </button>
-          <button className="hover:text-primary-button cursor-pointer transition-all hover:scale-105">
+          <Link 
+            to="/customer/login" 
+            className="hover:text-primary-button cursor-pointer transition-all hover:scale-105 inline-block" // Added inline-block to ensure transform works
+          >
             <FaUser className="text-xl" />
-          </button>
+          </Link>
           <button className="hover:text-primary-button cursor-pointer transition-all hover:scale-105">
             <FaSearch className="text-xl" />
           </button>

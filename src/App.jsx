@@ -14,6 +14,9 @@ import AdminDashboard from "./Components/Admin Dashboard/AdminDashboard"
 // Product Pages
 import Shop from './Components/Products/Shop'
 import ProductDetail from './Components/Products/ProductDetail'
+//Customer Pages
+import CustomerLogin from './Components/Customer/CustomerLogin'
+import CustomerProfile from './Components/Customer/CustomerProfile'
 
 function App() {
   return (
@@ -41,8 +44,10 @@ function App() {
         {/* Product routes */}
         <Route path="/shop" element={<Shop />} />
         <Route path="/product/:id" element={<ProductDetail />} />
-
         
+        {/* Customer routes */}
+        <Route path="/customer/login" element={<CustomerLogin />} />
+        <Route path="/customer/profile" element={<CustomerProfile />} />
       </Routes>
     </Router>
   )
