@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ShopNowButton from './ShopNowButton';
-
+import ShopNowButton from '../Elements/ShopNowButton';
 const HeroCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   

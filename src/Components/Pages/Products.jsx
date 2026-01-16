@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import ShopNowButton from './ShopNowButton';
+import ShopNowButton from '../Elements/ShopNowButton';
 
 const ProductSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
