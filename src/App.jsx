@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import Navbar from "./Components/Pages/Navbar"
 import HeroCarousel from "./Components/Pages/HeroCarousel"
 import ProductsSection from "./Components/Pages/Products"
@@ -25,9 +26,20 @@ import CustomerProfile from './Components/Customer/CustomerProfile'
 import Checkout from './Components/Orders/Checkout'
 import OrderSuccess from './Components/Orders/OrderSuccess'
 
+function ScrollToTop() {
+  const location = useLocation()
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [location.pathname])
+
+  return null
+}
+
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
         {/* Main website route */}
         <Route path="/" element={
