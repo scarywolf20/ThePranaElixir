@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+
 const testimonials = [
   { id: 1, text: "The Banaras Stripe soap is a game changer. My skin has never felt more hydrated and clean.", author: "Ananya R." },
   { id: 2, text: "I love the commitment to natural ingredients. The packaging is as beautiful as the product.", author: "Marcus T." },
