@@ -1,16 +1,57 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, CreditCard, Truck, MapPin, CheckCircle } from 'lucide-react';
+import { ShieldCheck, CreditCard, Truck, MapPin, CheckCircle, Tag, Check, X } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
 
 const Checkout = () => {
   const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState('card');
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [showCouponInput, setShowCouponInput] = useState(false);
+
+  // Mock coupon codes (in real app, validate from backend)
+  const validCoupons = {
+    'HAPPY': { discount: 10, type: 'percentage' },
+    'SAVE20': { discount: 20, type: 'percentage' },
+    'FLAT100': { discount: 100, type: 'fixed' }
+  };
 
   // Mock Cart Data (In real app, get this from useCart context)
-  const cartTotal = 1785.00;
+  const cartSubtotal = 1650.00;
   const shipping = 0; // Free shipping
-  const finalTotal = 1785.00;
+  
+  // Calculate discount
+  let discount = 0;
+  if (appliedCoupon) {
+    if (appliedCoupon.type === 'percentage') {
+      discount = (cartSubtotal * appliedCoupon.discount) / 100;
+    } else if (appliedCoupon.type === 'fixed') {
+      discount = appliedCoupon.discount;
+    }
+  }
+
+  const finalTotal = cartSubtotal - discount + shipping;
+
+  const handleApplyCoupon = () => {
+    const code = couponCode.trim().toUpperCase();
+    if (validCoupons[code]) {
+      setAppliedCoupon({ code, ...validCoupons[code] });
+      setCouponError('');
+      setCouponCode('');
+      setShowCouponInput(false);
+    } else {
+      setCouponError('Invalid coupon code');
+      setAppliedCoupon(null);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    setCouponError('');
+  };
 
   const handlePlaceOrder = (e) => {
     e.preventDefault();
@@ -153,18 +194,100 @@ const Checkout = () => {
                 </div>
               </div>
 
+              {/* Coupon Code Section */}
+              <div className="mb-6 pb-6 border-b border-border">
+                {!appliedCoupon ? (
+                  <>
+                    {!showCouponInput ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowCouponInput(true)}
+                        className="flex items-center gap-2 text-primary-button hover:text-primary-hover transition-colors text-sm font-medium cursor-pointer"
+                      >
+                        <Tag className="w-4 h-4" />
+                        Have a coupon code?
+                      </button>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <div className="flex-1 relative">
+                            <input
+                              type="text"
+                              value={couponCode}
+                              onChange={(e) => {
+                                setCouponCode(e.target.value.toUpperCase());
+                                setCouponError('');
+                              }}
+                              onKeyPress={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                              placeholder="Enter coupon code"
+                              className="w-full bg-bg-main border border-border rounded-lg px-4 py-2.5 text-text-primary text-sm focus:border-primary-button focus:outline-none uppercase"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleApplyCoupon}
+                            className="px-4 py-2.5 bg-primary-button text-white rounded-lg hover:bg-primary-hover transition-colors text-sm font-medium cursor-pointer"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                        {couponError && (
+                          <p className="text-danger text-xs">{couponError}</p>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowCouponInput(false);
+                            setCouponCode('');
+                            setCouponError('');
+                          }}
+                          className="text-text-secondary hover:text-text-primary text-xs underline cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="bg-success/10 border border-success/30 rounded-lg p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-success rounded-full flex items-center justify-center">
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-success font-medium text-sm">Coupon Applied!</p>
+                        <p className="text-text-secondary text-xs">Code: {appliedCoupon.code}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveCoupon}
+                      className="text-text-secondary hover:text-danger transition-colors cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <div className="border-t border-border pt-4 space-y-2 text-text-secondary text-sm">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>Rs. {cartTotal}</span>
+                  <span>Rs. {cartSubtotal.toFixed(2)}</span>
                 </div>
+                {appliedCoupon && discount > 0 && (
+                  <div className="flex justify-between text-success font-medium">
+                    <span>Discount ({appliedCoupon.code})</span>
+                    <span>- Rs. {discount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span>Shipping</span>
                   <span className="text-success font-medium">Free</span>
                 </div>
                 <div className="flex justify-between text-lg font-serif text-text-primary pt-2 border-t border-dashed border-border mt-2">
                   <span>Total</span>
-                  <span>Rs. {finalTotal}</span>
+                  <span>Rs. {finalTotal.toFixed(2)}</span>
                 </div>
               </div>
 

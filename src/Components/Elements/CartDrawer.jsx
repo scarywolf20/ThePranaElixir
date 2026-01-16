@@ -1,8 +1,20 @@
 import { useState, useEffect } from 'react'
-import { X, Plus, Minus, ShoppingBag, Trash2, ArrowRight } from 'lucide-react'
+import { X, Plus, Minus, ShoppingBag, Trash2, ArrowRight, Tag, Check } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const CartDrawer = ({ isOpen, onClose }) => {
+  const [couponCode, setCouponCode] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [couponError, setCouponError] = useState('')
+  const [showCouponInput, setShowCouponInput] = useState(false)
+
+  // Mock coupon codes (in real app, validate from backend)
+  const validCoupons = {
+    'HAPPY': { discount: 10, type: 'percentage' },
+    'SAVE20': { discount: 20, type: 'percentage' },
+    'FLAT100': { discount: 100, type: 'fixed' }
+  }
+
   const [cartItems, setCartItems] = useState([
     {
       id: 1,
@@ -53,9 +65,38 @@ const CartDrawer = ({ isOpen, onClose }) => {
     setCartItems(items => items.filter(item => item.id !== id))
   }
 
+  const handleApplyCoupon = () => {
+    const code = couponCode.trim().toUpperCase()
+    if (validCoupons[code]) {
+      setAppliedCoupon({ code, ...validCoupons[code] })
+      setCouponError('')
+      setCouponCode('')
+    } else {
+      setCouponError('Invalid coupon code')
+      setAppliedCoupon(null)
+    }
+  }
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponCode('')
+    setCouponError('')
+  }
+
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const tax = subtotal * 0.05 
-  const total = subtotal + tax
+  
+  // Calculate discount
+  let discount = 0
+  if (appliedCoupon) {
+    if (appliedCoupon.type === 'percentage') {
+      discount = (subtotal * appliedCoupon.discount) / 100
+    } else if (appliedCoupon.type === 'fixed') {
+      discount = appliedCoupon.discount
+    }
+  }
+
+  const tax = (subtotal - discount) * 0.05 
+  const total = subtotal - discount + tax
 
   return (
     <>
@@ -157,11 +198,90 @@ const CartDrawer = ({ isOpen, onClose }) => {
         {/* 3. Footer (Fixed Height, Don't Shrink) */}
         {cartItems.length > 0 && (
           <div className="flex-none border-t border-border p-6 bg-bg-section pb-8 md:pb-6">
+            
+            {/* Coupon Code Section */}
+            <div className="mb-6">
+              {!appliedCoupon ? (
+                <>
+                  {!showCouponInput ? (
+                    <button
+                      onClick={() => setShowCouponInput(true)}
+                      className="flex items-center gap-2 text-primary-button hover:text-primary-hover transition-colors text-sm font-medium cursor-pointer"
+                    >
+                      <Tag className="w-4 h-4" />
+                      Have a coupon code?
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            value={couponCode}
+                            onChange={(e) => {
+                              setCouponCode(e.target.value.toUpperCase())
+                              setCouponError('')
+                            }}
+                            onKeyPress={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                            placeholder="Enter coupon code"
+                            className="w-full bg-bg-main border border-border rounded-lg px-4 py-2.5 text-text-primary text-sm focus:border-primary-button focus:outline-none uppercase"
+                          />
+                        </div>
+                        <button
+                          onClick={handleApplyCoupon}
+                          className="px-4 py-2.5 bg-primary-button text-white rounded-lg hover:bg-primary-hover transition-colors text-sm font-medium cursor-pointer"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                      {couponError && (
+                        <p className="text-danger text-xs">{couponError}</p>
+                      )}
+                      <button
+                        onClick={() => {
+                          setShowCouponInput(false)
+                          setCouponCode('')
+                          setCouponError('')
+                        }}
+                        className="text-text-secondary hover:text-text-primary text-xs underline cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="bg-success/10 border border-success/30 rounded-lg p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-success rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-success font-medium text-sm">Coupon Applied!</p>
+                      <p className="text-text-secondary text-xs">Code: {appliedCoupon.code}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleRemoveCoupon}
+                    className="text-text-secondary hover:text-danger text-xs font-medium cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-3 mb-6">
               <div className="flex justify-between text-sm text-text-secondary">
                 <span>Subtotal</span>
                 <span>Rs. {subtotal.toFixed(2)}</span>
               </div>
+              {appliedCoupon && discount > 0 && (
+                <div className="flex justify-between text-sm text-success font-medium">
+                  <span>Discount ({appliedCoupon.code})</span>
+                  <span>- Rs. {discount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm text-text-secondary">
                 <span>Tax (5%)</span>
                 <span>Rs. {tax.toFixed(2)}</span>
