@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FaUser } from "react-icons/fa"
-import { FaSearch } from "react-icons/fa";
+// import { FaSearch } from "react-icons/fa";
 import { FaCartShopping } from "react-icons/fa6";
 import { FaInstagram } from "react-icons/fa6";
 import { FaWhatsapp } from "react-icons/fa6";
@@ -136,9 +136,9 @@ const Navbar = () => {
 
           {/* Action Icons */}
           <div className="flex gap-6 text-text-primary">
-            <button className="hover:text-primary-button cursor-pointer transition-all hover:scale-105">
+            {/* <button className="hover:text-primary-button cursor-pointer transition-all hover:scale-105">
               <FaSearch className="text-xl" />
-            </button>
+            </button> */}
             <Link 
               to="/customer/login" 
               className="hover:text-primary-button cursor-pointer transition-all hover:scale-105 inline-block"

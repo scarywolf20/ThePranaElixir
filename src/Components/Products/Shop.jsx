@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { Search, Filter, ChevronDown, X, SlidersHorizontal } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
 
-// Shared Mock Data (You would usually fetch this from an API)
+// Shared Mock Data
 export const productsData = [
   { 
     id: 1, 
     name: "POSTCARDS", 
     price: 700, 
+    category: "Stationery",
     image: "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?q=80&w=1000&auto=format&fit=crop", 
     description: "Handcrafted paper postcards for your loved ones."
   },
@@ -15,6 +17,7 @@ export const productsData = [
     id: 2, 
     name: "BATH ACCESSORIES", 
     price: 295, 
+    category: "Essentials",
     image: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=1000&auto=format&fit=crop", 
     description: "Leather and sustainable materials for your daily carry."
   },
@@ -22,6 +25,7 @@ export const productsData = [
     id: 3, 
     name: "GENTLE HABITS SOAPS", 
     price: 250, 
+    category: "Bath & Body",
     image: "https://images.unsplash.com/photo-1600857062241-98e5dba7f214?q=80&w=1000&auto=format&fit=crop", 
     description: "Organic, scented soaps for a relaxing bath experience."
   },
@@ -29,52 +33,201 @@ export const productsData = [
     id: 4, 
     name: "CERAMIC VASE", 
     price: 1200, 
+    category: "Home Decor",
     image: "https://images.unsplash.com/photo-1612196808214-b7e239e5f6b7?q=80&w=1000&auto=format&fit=crop", 
     description: "Minimalist ceramic vase for modern homes."
+  },
+  { 
+    id: 5, 
+    name: "LINEN TABLECLOTH", 
+    price: 1500, 
+    category: "Home Decor",
+    image: "https://images.unsplash.com/photo-1593936660460-7a8742b0c363?q=80&w=1000&auto=format&fit=crop", 
+    description: "Pure linen tablecloth in earthy tones."
+  },
+  { 
+    id: 6, 
+    name: "SCENTED CANDLE", 
+    price: 450, 
+    category: "Home Decor",
+    image: "https://images.unsplash.com/photo-1602523961358-f9f03dd557db?q=80&w=1000&auto=format&fit=crop", 
+    description: "Soy wax candle with lavender and sage."
   },
 ];
 
 const Shop = () => {
+  // --- STATE ---
+  const [showFilters, setShowFilters] = useState(false); // Toggle State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [sortOption, setSortOption] = useState("featured");
+
+  const categories = ["All", ...new Set(productsData.map(p => p.category))];
+
+  const filteredProducts = useMemo(() => {
+    return productsData
+      .filter((product) => {
+        const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
+        return matchesSearch && matchesCategory;
+      })
+      .sort((a, b) => {
+        if (sortOption === "price-low") return a.price - b.price;
+        if (sortOption === "price-high") return b.price - a.price;
+        return 0;
+      });
+  }, [searchQuery, selectedCategory, sortOption]);
+
+  // Check if any filter is active
+  const hasActiveFilters = searchQuery !== "" || selectedCategory !== "All";
+
   return (
-    <div className="min-h-screen bg-bg-main">
+    <div className="min-h-screen bg-bg-main font-sans">
       <Navbar />
       
       <div className="container mx-auto px-4 py-12 md:py-20">
-        <h1 className="text-4xl md:text-5xl font-serif text-text-primary text-center mb-4">
-          Shop All
-        </h1>
-        <p className="text-text-secondary text-center mb-16 italic">
-          Curated essentials for a mindful lifestyle.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
-          {productsData.map((product) => (
-            <Link 
-              to={`/product/${product.id}`} 
-              key={product.id} 
-              className="group cursor-pointer"
-            >
-              {/* Image Container with strict rounded corners from your reference */}
-              <div className="aspect-[3/4] overflow-hidden rounded-[2.5rem] bg-bg-section mb-6 shadow-sm hover:shadow-md transition-shadow duration-300">
-                <img 
-                  src={product.image} 
-                  alt={product.name} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                />
-              </div>
-
-              {/* Text Info */}
-              <div className="text-center space-y-2">
-                <h3 className="text-xl font-serif tracking-wide text-text-primary uppercase group-hover:text-primary-button transition-colors">
-                  {product.name}
-                </h3>
-                <p className="text-text-secondary italic font-light">
-                  From Rs.{product.price}/-
-                </p>
-              </div>
-            </Link>
-          ))}
+        
+        {/* Header & Toggle Button */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl md:text-5xl font-serif text-text-primary mb-4">
+            Shop All
+          </h1>
+          <p className="text-text-secondary italic mb-8">
+            Curated essentials for a mindful lifestyle.
+          </p>
+          
+          {/* THE TOGGLE BUTTON */}
+          <button 
+            onClick={() => setShowFilters(!showFilters)}
+            className={`
+              inline-flex items-center gap-2 px-6 py-3 rounded-full border transition-all duration-300
+              ${showFilters || hasActiveFilters
+                ? 'bg-text-primary text-bg-surface border-text-primary' 
+                : 'bg-transparent text-text-primary border-text-primary hover:bg-text-primary/5'}
+            `}
+          >
+            {showFilters ? <X size={18} /> : <SlidersHorizontal size={18} />}
+            <span className="uppercase tracking-widest text-xs font-bold">
+              {showFilters ? 'Close Filters' : 'Search & Filter'}
+            </span>
+          </button>
         </div>
+
+        {/* --- EXPANDABLE FILTER SECTION --- */}
+        <div 
+          className={`
+            overflow-hidden transition-all duration-500 ease-in-out
+            ${showFilters ? 'max-h-[500px] opacity-100 mb-12' : 'max-h-0 opacity-0 mb-0'}
+          `}
+        >
+          <div className="bg-bg-surface border border-border rounded-2xl p-4 md:p-6 shadow-sm">
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+              
+              {/* Search */}
+              <div className="relative w-full md:w-96">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={20} />
+                <input 
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-bg-main border border-border rounded-xl pl-12 pr-10 py-3 text-text-primary focus:outline-none focus:border-primary-button transition-colors placeholder-text-muted"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary">
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+
+              {/* Filters */}
+              <div className="flex flex-wrap gap-4 w-full md:w-auto">
+                <div className="relative group min-w-[140px] flex-1 md:flex-none">
+                  <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text-muted">
+                    <Filter size={16} />
+                  </div>
+                  <select 
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full appearance-none bg-bg-main border border-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-primary-button cursor-pointer"
+                  >
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="relative group min-w-[160px] flex-1 md:flex-none">
+                  <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text-muted">
+                    <ChevronDown size={16} />
+                  </div>
+                  <select 
+                    value={sortOption}
+                    onChange={(e) => setSortOption(e.target.value)}
+                    className="w-full appearance-none bg-bg-main border border-border rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-primary-button cursor-pointer"
+                  >
+                    <option value="featured">Featured</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Active Tags */}
+            {(selectedCategory !== "All" || searchQuery) && (
+              <div className="flex gap-2 mt-4 flex-wrap animate-in fade-in slide-in-from-top-2">
+                <button 
+                  onClick={() => {setSelectedCategory("All"); setSearchQuery(""); setSortOption("featured")}} 
+                  className="text-xs text-text-secondary underline hover:text-primary-button mr-2"
+                >
+                  Clear all
+                </button>
+                {selectedCategory !== "All" && (
+                  <span className="bg-bg-section text-text-primary px-3 py-1 rounded-full text-sm flex items-center gap-2 border border-border">
+                    {selectedCategory}
+                    <button onClick={() => setSelectedCategory("All")} className="hover:text-primary-button"><X size={12} /></button>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* --- PRODUCTS GRID --- */}
+        {filteredProducts.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
+            {filteredProducts.map((product) => (
+              <Link to={`/product/${product.id}`} key={product.id} className="group cursor-pointer">
+                <div className="aspect-[3/4] overflow-hidden rounded-[2.5rem] bg-bg-section mb-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative">
+                  <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+                  <span className="absolute top-4 left-4 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold text-text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    {product.category}
+                  </span>
+                </div>
+                <div className="text-center space-y-2">
+                  <h3 className="text-xl font-serif tracking-wide text-text-primary uppercase group-hover:text-primary-button transition-colors">
+                    {product.name}
+                  </h3>
+                  <p className="text-text-secondary italic font-light">
+                    Rs.{product.price}/-
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-20 bg-bg-surface rounded-[2.5rem] border border-dashed border-border">
+            <h3 className="text-2xl font-serif text-text-primary mb-2">No products found</h3>
+            <p className="text-text-secondary">Try adjusting your search or filters.</p>
+            <button 
+              onClick={() => {setSelectedCategory("All"); setSearchQuery("");}}
+              className="mt-6 text-primary-button border-b border-primary-button pb-0.5 hover:opacity-80"
+            >
+              Reset Filters
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
