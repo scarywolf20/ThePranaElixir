@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X, Plus, Minus, ShoppingBag, Trash2, ArrowRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 const CartDrawer = ({ isOpen, onClose }) => {
   const [cartItems, setCartItems] = useState([
@@ -170,10 +171,14 @@ const CartDrawer = ({ isOpen, onClose }) => {
                 <span>Rs. {total.toFixed(2)}</span>
               </div>
             </div>
-            <button className="w-full bg-primary-button text-white py-4 rounded-xl font-medium hover:bg-primary-hover transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-0.5 cursor-pointer">
-              Proceed to Checkout
-              <ArrowRight className="w-5 h-5" />
-            </button>
+           <Link
+                to="/checkout"
+                onClick={onClose} // 2. Close drawer when clicking
+                className="w-full bg-primary-button text-white py-4 rounded-xl font-medium hover:bg-primary-hover transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-0.5 cursor-pointer"
+                >
+                Proceed to Checkout
+                <ArrowRight className="w-5 h-5" />
+                </Link>
           </div>
         )}
       </div>

@@ -17,6 +17,9 @@ import ProductDetail from './Components/Products/ProductDetail'
 //Customer Pages
 import CustomerLogin from './Components/Customer/CustomerLogin'
 import CustomerProfile from './Components/Customer/CustomerProfile'
+//Order Routes
+import Checkout from './Components/Orders/Checkout'
+import OrderSuccess from './Components/Orders/OrderSuccess'
 
 function App() {
   return (
@@ -48,6 +51,10 @@ function App() {
         {/* Customer routes */}
         <Route path="/customer/login" element={<CustomerLogin />} />
         <Route path="/customer/profile" element={<CustomerProfile />} />
+        
+        {/* Order routes */}
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/order-success" element={<OrderSuccess />} />
       </Routes>
     </Router>
   )
