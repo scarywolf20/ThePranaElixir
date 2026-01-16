@@ -6,9 +6,11 @@ import BestSellers from "./Components/BestSellers"
 import Testimonials from "./Components/Testimonials"
 import Features from "./Components/Features"
 import Footer from "./Components/Footer"
+import BackToTop from "./Components/BackToTop" 
+
 function App() {
   return (
-    <div>
+    <div className="relative">
       <Navbar />
       <HeroCarousel />
       <Features />
@@ -17,6 +19,7 @@ function App() {
       <BestSellers />
       <Testimonials />
       <Footer />
+      <BackToTop />
     </div>
   )
 }
