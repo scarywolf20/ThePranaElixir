@@ -9,6 +9,8 @@ import Features from "./Components/Pages/Features"
 import Footer from "./Components/Pages/Footer"
 import BackToTop from "./Components/Elements/BackToTop"
 import Contact from "./Components/Pages/Connect"
+import Story from "./Components/Pages/Story"
+
 // Admin Pages
 import AdminLogin from "./Components/Admin Dashboard/AdminLogin"
 import AdminDashboard from "./Components/Admin Dashboard/AdminDashboard"
@@ -58,6 +60,8 @@ function App() {
         <Route path="/order-success" element={<OrderSuccess />} />
         {/* Contact route */}
         <Route path="/contact" element={<Contact />} />
+        {/* Story route */}
+        <Route path="/story" element={<Story />} />
       </Routes>
     </Router>
   )

@@ -14,9 +14,9 @@ const Navbar = () => {
 
   const navLinks = [
     { name: 'home', id: '/' },
-    { name: 'story', id: 'story' },
-    { name: 'shop', id: 'shop', hasDropdown: true },
-    { name: 'custom orders', id: 'custom' },
+    { name: 'story', id: '/story' },
+    { name: 'shop', id: '/shop', hasDropdown: true },
+    { name: 'custom orders', id: '/contact' },
     { name: 'connect', id: '/contact' }, // Starts with '/' so it will be a Link
   ];
 
