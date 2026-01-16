@@ -1,23 +1,29 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { FaUser } from "react-icons/fa"
 import { FaSearch } from "react-icons/fa";
 import { FaCartShopping } from "react-icons/fa6";
 import { FaInstagram } from "react-icons/fa6";
 import { FaWhatsapp } from "react-icons/fa6";
-import CartDrawer from "../Elements/CartDrawer"; // Adjust path if needed
+import CartDrawer from "../Elements/CartDrawer";
 
 const Navbar = () => {
   const [isShopOpen, setIsShopOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('home');
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(location.pathname);
+
+  // Update activeTab when route changes
+  useEffect(() => {
+    setActiveTab(location.pathname);
+  }, [location.pathname]);
 
   const navLinks = [
     { name: 'home', id: '/' },
     { name: 'story', id: '/story' },
     { name: 'shop', id: '/shop', hasDropdown: true },
-    { name: 'custom orders', id: '/contact' },
-    { name: 'connect', id: '/contact' }, // Starts with '/' so it will be a Link
+    { name: 'custom orders', id: '/custom' },
+    { name: 'connect', id: '/contact' },
   ];
 
   return (
@@ -54,57 +60,53 @@ const Navbar = () => {
               <FaInstagram className="text-xl" />
             </button>
             <button className="hover:text-primary-button cursor-pointer transition-colors">
-             <FaWhatsapp className="text-xl" />
+              <FaWhatsapp className="text-xl" />
             </button>
           </div>
 
           {/* Center Menu */}
           <ul className="flex items-center gap-10">
             {navLinks.map((link) => {
-              // Check if this item should be a Route Link or a Button
-              const isRoute = link.id.toString().startsWith('/');
-
+              const isActive = activeTab === link.id;
+              
               return (
                 <li key={link.id} className="relative group">
-                  {isRoute ? (
-                    // RENDER AS LINK (For /contact)
-                    <Link
-                      to={link.id}
-                      onClick={() => setActiveTab(link.id)}
-                      className={`
-                        relative pb-1 text-sm tracking-[0.2em] uppercase font-medium transition-colors cursor-pointer inline-block
-                        hover:text-primary-button
-                        ${activeTab === link.id ? 'text-text-primary' : 'text-text-secondary'}
-                      `}
-                    >
-                      {link.name}
-                    </Link>
-                  ) : (
-                    // RENDER AS BUTTON (For Dropdowns/Scroll items)
+                  {link.hasDropdown ? (
+                    // RENDER AS BUTTON (For Dropdowns)
                     <button
-                      onMouseEnter={() => link.hasDropdown && setIsShopOpen(true)}
+                      onMouseEnter={() => setIsShopOpen(true)}
                       onClick={() => setActiveTab(link.id)}
                       className={`
                         relative pb-1 text-sm tracking-[0.2em] uppercase font-medium transition-colors cursor-pointer
                         hover:text-primary-button
-                        ${activeTab === link.id ? 'text-text-primary' : 'text-text-secondary'}
+                        ${isActive ? 'text-text-primary' : 'text-text-secondary'}
                       `}
                     >
                       <span className="flex items-center">
                         {link.name}
-                        {link.hasDropdown && (
-                          <svg className={`ml-1.5 w-3.5 h-3.5 transition-transform duration-300 ${isShopOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                          </svg>
-                        )}
+                        <svg className={`ml-1.5 w-3.5 h-3.5 transition-transform duration-300 ${isShopOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                        </svg>
                       </span>
                     </button>
+                  ) : (
+                    // RENDER AS LINK (For Routes)
+                    <Link
+                      to={link.id}
+                      className={`
+                        relative pb-1 text-sm tracking-[0.2em] uppercase font-medium transition-colors cursor-pointer inline-block
+                        hover:text-primary-button
+                        ${isActive ? 'text-text-primary' : 'text-text-secondary'}
+                      `}
+                    >
+                      {link.name}
+                    </Link>
                   )}
 
                   {/* Persistent Underline */}
                   <div className={`
                     absolute -bottom-1 left-0 h-[1.5px] bg-text-primary transition-all duration-300
-                    ${activeTab === link.id ? 'w-full opacity-100' : 'w-0 group-hover:w-full group-hover:opacity-100'}
+                    ${isActive ? 'w-full opacity-100' : 'w-0 group-hover:w-full group-hover:opacity-100'}
                   `} />
 
                   {/* Shop Dropdown */}

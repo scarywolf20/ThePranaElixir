@@ -10,6 +10,7 @@ import Footer from "./Components/Pages/Footer"
 import BackToTop from "./Components/Elements/BackToTop"
 import Contact from "./Components/Pages/Connect"
 import Story from "./Components/Pages/Story"
+import Custom from "./Components/Pages/Custom"
 
 // Admin Pages
 import AdminLogin from "./Components/Admin Dashboard/AdminLogin"
@@ -62,6 +63,8 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         {/* Story route */}
         <Route path="/story" element={<Story />} />
+        {/* Custom route */}
+        <Route path="/custom" element={<Custom />} />
       </Routes>
     </Router>
   )

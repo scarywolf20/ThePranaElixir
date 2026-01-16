@@ -11,7 +11,7 @@ const themeColors = {
   bg: '#ECE3D8',      // bg-bg-main
 };
 
-export default function Contact() {
+export default function Custom() {
   const containerRef = useRef(null);
   const headerRef = useRef(null);
   
