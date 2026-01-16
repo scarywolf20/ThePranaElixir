@@ -8,6 +8,7 @@ import Testimonials from "./Components/Pages/Testimonials"
 import Features from "./Components/Pages/Features"
 import Footer from "./Components/Pages/Footer"
 import BackToTop from "./Components/Elements/BackToTop"
+import Contact from "./Components/Pages/Connect"
 // Admin Pages
 import AdminLogin from "./Components/Admin Dashboard/AdminLogin"
 import AdminDashboard from "./Components/Admin Dashboard/AdminDashboard"
@@ -55,6 +56,8 @@ function App() {
         {/* Order routes */}
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/order-success" element={<OrderSuccess />} />
+        {/* Contact route */}
+        <Route path="/contact" element={<Contact />} />
       </Routes>
     </Router>
   )
