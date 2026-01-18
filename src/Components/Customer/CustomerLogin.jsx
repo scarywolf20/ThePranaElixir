@@ -2,10 +2,15 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, ArrowRight, ArrowLeft } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
+import { useAuth } from '../../context/useAuth';
 
 const CustomerLogin = () => {
   const [isLogin, setIsLogin] = useState(true); // Toggle between Login and Signup
   const navigate = useNavigate();
+  const { login, signup, resetPassword } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   // Mock Form State
   const [formData, setFormData] = useState({
@@ -14,13 +19,47 @@ const CustomerLogin = () => {
     password: ''
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you would connect to your Backend (Firebase/Supabase/Node)
-    console.log("Form Submitted:", formData);
-    
-    // Simulate successful login -> Redirect to Shop
-    navigate('/shop');
+    setError('');
+    setMessage('');
+
+    try {
+      setSubmitting(true);
+      if (isLogin) {
+        await login({ email: formData.email, password: formData.password });
+      } else {
+        await signup({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        });
+      }
+      navigate('/shop');
+    } catch (err) {
+      setError(err?.message || 'Authentication failed. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setError('');
+    setMessage('');
+    if (!formData.email) {
+      setError('Please enter your email first.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await resetPassword(formData.email);
+      setMessage('Password reset email sent. Please check your inbox.');
+    } catch (err) {
+      setError(err?.message || 'Unable to send reset email.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -60,6 +99,18 @@ const CustomerLogin = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+
+              {error && (
+                <div className="bg-danger/10 border border-danger/30 text-danger px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              {message && (
+                <div className="bg-success/10 border border-success/30 text-success px-4 py-3 rounded-lg text-sm">
+                  {message}
+                </div>
+              )}
               
               {/* Name Field (Only for Signup) */}
               {!isLogin && (
@@ -70,6 +121,7 @@ const CustomerLogin = () => {
                     <input 
                       type="text" 
                       placeholder="Jane Doe"
+                      required={!isLogin}
                       className="w-full bg-bg-main border border-border rounded-xl px-12 py-3 text-text-primary outline-none focus:border-primary-button focus:ring-1 focus:ring-primary-button transition-all"
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -86,6 +138,7 @@ const CustomerLogin = () => {
                   <input 
                     type="email" 
                     placeholder="name@example.com"
+                    required
                     className="w-full bg-bg-main border border-border rounded-xl px-12 py-3 text-text-primary outline-none focus:border-primary-button focus:ring-1 focus:ring-primary-button transition-all"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
@@ -101,6 +154,8 @@ const CustomerLogin = () => {
                   <input 
                     type="password" 
                     placeholder="••••••••"
+                    required
+                    minLength={6}
                     className="w-full bg-bg-main border border-border rounded-xl px-12 py-3 text-text-primary outline-none focus:border-primary-button focus:ring-1 focus:ring-primary-button transition-all"
                     value={formData.password}
                     onChange={(e) => setFormData({...formData, password: e.target.value})}
@@ -111,7 +166,12 @@ const CustomerLogin = () => {
               {/* Forgot Password Link (Only Login) */}
               {isLogin && (
                 <div className="flex justify-end">
-                  <button type="button" className="text-sm text-primary-button hover:underline cursor-pointer">
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-sm text-primary-button hover:underline cursor-pointer"
+                    disabled={submitting}
+                  >
                     Forgot Password?
                   </button>
                 </div>
@@ -120,9 +180,10 @@ const CustomerLogin = () => {
               {/* Submit Button */}
               <button 
                 type="submit" 
-                className="w-full bg-primary-button hover:bg-primary-hover text-white font-medium py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 cursor-pointer mt-4"
+                className="w-full bg-primary-button hover:bg-primary-hover text-white font-medium py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 cursor-pointer mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
+                disabled={submitting}
               >
-                {isLogin ? 'Sign In' : 'Create Account'}
+                {submitting ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
                 <ArrowRight size={20} />
               </button>
             </form>

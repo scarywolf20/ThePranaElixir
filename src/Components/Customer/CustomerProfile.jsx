@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { 
   User, 
   Package, 
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/useAuth';
 
 // --- MOCK DATA ---
 const mockUser = {
@@ -36,8 +37,8 @@ const mockAddresses = [
 // --- SUB-COMPONENTS ---
 
 // 1. EDIT PROFILE TAB
-const ProfileTab = () => {
-  const [user, setUser] = useState(mockUser);
+const ProfileTab = ({ user }) => {
+  const [localUser, setLocalUser] = useState(user);
   const [isEditing, setIsEditing] = useState(false);
 
   return (
@@ -45,7 +46,7 @@ const ProfileTab = () => {
       <div className="flex items-center gap-6">
         <div className="relative">
           <img 
-            src={user.avatar} 
+            src={localUser.avatar} 
             alt="Profile" 
             className="w-24 h-24 rounded-full object-cover border-4 border-bg-surface shadow-md" 
           />
@@ -54,8 +55,8 @@ const ProfileTab = () => {
           </button>
         </div>
         <div>
-          <h2 className="text-2xl font-serif text-text-primary">{user.name}</h2>
-          <p className="text-text-secondary">{user.email}</p>
+          <h2 className="text-2xl font-serif text-text-primary">{localUser.name}</h2>
+          <p className="text-text-secondary">{localUser.email}</p>
         </div>
       </div>
 
@@ -75,8 +76,8 @@ const ProfileTab = () => {
             <label className="text-xs font-bold uppercase text-text-secondary">Full Name</label>
             <input 
               disabled={!isEditing}
-              value={user.name}
-              onChange={(e) => setUser({...user, name: e.target.value})}
+              value={localUser.name}
+              onChange={(e) => setLocalUser({...localUser, name: e.target.value})}
               className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary disabled:opacity-60 focus:outline-none focus:border-primary-button"
             />
           </div>
@@ -84,8 +85,8 @@ const ProfileTab = () => {
             <label className="text-xs font-bold uppercase text-text-secondary">Email Address</label>
             <input 
               disabled={!isEditing}
-              value={user.email}
-              onChange={(e) => setUser({...user, email: e.target.value})}
+              value={localUser.email}
+              onChange={(e) => setLocalUser({...localUser, email: e.target.value})}
               className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary disabled:opacity-60 focus:outline-none focus:border-primary-button"
             />
           </div>
@@ -93,8 +94,8 @@ const ProfileTab = () => {
             <label className="text-xs font-bold uppercase text-text-secondary">Phone Number</label>
             <input 
               disabled={!isEditing}
-              value={user.phone}
-              onChange={(e) => setUser({...user, phone: e.target.value})}
+              value={localUser.phone}
+              onChange={(e) => setLocalUser({...localUser, phone: e.target.value})}
               className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary disabled:opacity-60 focus:outline-none focus:border-primary-button"
             />
           </div>
@@ -181,10 +182,26 @@ const AddressTab = () => {
 const CustomerProfile = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const navigate = useNavigate();
+  const { user, loading, logout } = useAuth();
 
-  const handleLogout = () => {
-    // Clear user session logic here
-    navigate('/customer/login'); // Redirect to login
+  const profileUser = useMemo(() => {
+    if (!user) return mockUser;
+    return {
+      ...mockUser,
+      name: user.displayName || mockUser.name,
+      email: user.email || mockUser.email,
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/customer/login')
+    }
+  }, [loading, user, navigate])
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/customer/login');
   };
 
   const menuItems = [
@@ -236,7 +253,7 @@ const CustomerProfile = () => {
 
           {/* MAIN CONTENT AREA */}
           <main className="flex-1 bg-white/50 backdrop-blur-sm rounded-xl border border-border p-6 md:p-8 min-h-[500px]">
-            {activeTab === 'profile' && <ProfileTab />}
+            {activeTab === 'profile' && <ProfileTab user={profileUser} />}
             {activeTab === 'orders' && <OrdersTab />}
             {activeTab === 'addresses' && <AddressTab />}
             {activeTab === 'wishlist' && (
