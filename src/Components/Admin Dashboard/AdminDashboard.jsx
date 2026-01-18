@@ -37,16 +37,6 @@ const initialOrders = [
   { id: 102, customer: "Mark Wilson", total: 45.00, status: "Shipped", instruction: "Leave at door" },
 ];
 
-const initialHeroSlides = [
-  { id: 1, title: "Summer Collection", subtitle: "Earthy tones for your home", image: "url_to_image_1" },
-  { id: 2, title: "Handcrafted Pottery", subtitle: "Made with love", image: "url_to_image_2" },
-];
-
-const initialTestimonials = [
-  { id: 1, name: "Sarah Jenkins", text: "The ceramic vase is absolutely stunning. The earthy texture fits my home perfectly.", rating: 5 },
-  { id: 2, name: "Michael Ross", text: "Fast shipping and great packaging, but the color was slightly lighter than expected.", rating: 4 },
-];
-
 // --- COMPONENTS ---
 
 // 1. PRODUCTS COMPONENT
@@ -279,56 +269,137 @@ const OrdersManager = () => {
 
 // 3. HERO SLIDER SETTINGS
 const HeroManager = () => {
-  const [slides, setSlides] = useState(initialHeroSlides);
+  const [slides, setSlides] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [isEditing, setIsEditing] = useState(false)
+  const [currentSlide, setCurrentSlide] = useState(null)
 
-  const handleUpdate = (id, field, value) => {
-    setSlides(slides.map(slide => slide.id === id ? { ...slide, [field]: value } : slide));
-  };
+  React.useEffect(() => {
+    const q = query(collection(db, 'hero_slides'), orderBy('createdAt', 'desc'))
+    const unsubscribe = onSnapshot(q, (snap) => {
+      setSlides(
+        snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })),
+      )
+      setLoading(false)
+    })
+    return unsubscribe
+  }, [])
+
+  const openEdit = (slide = { title: '', subtitle: '', imageUrl: '' }) => {
+    setCurrentSlide(slide)
+    setIsEditing(true)
+  }
+
+  const handleDelete = async (id) => {
+    await deleteDoc(doc(db, 'hero_slides', id))
+  }
+
+  const handleSave = async (e) => {
+    e.preventDefault()
+    const payload = {
+      title: currentSlide.title || '',
+      subtitle: currentSlide.subtitle || '',
+      imageUrl: currentSlide.imageUrl || '',
+      updatedAt: serverTimestamp(),
+    }
+
+    if (currentSlide.id) {
+      await setDoc(doc(db, 'hero_slides', currentSlide.id), payload, { merge: true })
+    } else {
+      await addDoc(collection(db, 'hero_slides'), {
+        ...payload,
+        createdAt: serverTimestamp(),
+      })
+    }
+
+    setIsEditing(false)
+    setCurrentSlide(null)
+  }
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-text-primary">Hero Slider Configuration</h2>
-      <div className="grid grid-cols-1 gap-6">
-        {slides.map((slide, index) => (
-          <div key={slide.id} className="bg-bg-surface border border-border rounded-xl p-6 flex flex-col md:flex-row gap-6 items-start">
-            <div className="w-full md:w-1/3 aspect-video bg-bg-section rounded-lg flex items-center justify-center text-text-muted border border-dashed border-border">
-              <div className="text-center">
-                <ImageIcon className="mx-auto mb-2" />
-                <span className="text-xs">Preview: Slide {index + 1}</span>
-              </div>
+      <div className="flex justify-between items-center">
+        <div className="text-text-secondary">Slides</div>
+        <button 
+          onClick={() => openEdit()}
+          className="bg-primary-button hover:bg-primary-hover text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
+        >
+          <Plus size={18} /> Add Slide
+        </button>
+      </div>
+
+      {isEditing && (
+        <div className="bg-bg-surface p-6 rounded-xl border border-border shadow-sm">
+          <h3 className="text-lg font-semibold mb-4 text-text-secondary">
+            {currentSlide.id ? 'Edit Slide' : 'Add New Slide'}
+          </h3>
+          <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              placeholder="Headline Text"
+              className="bg-bg-main border border-border p-3 rounded-lg focus:outline-none focus:border-primary-button text-text-primary placeholder-text-muted"
+              value={currentSlide.title}
+              onChange={(e) => setCurrentSlide({ ...currentSlide, title: e.target.value })}
+            />
+            <input
+              placeholder="Sub-headline"
+              className="bg-bg-main border border-border p-3 rounded-lg focus:outline-none focus:border-primary-button text-text-primary placeholder-text-muted"
+              value={currentSlide.subtitle}
+              onChange={(e) => setCurrentSlide({ ...currentSlide, subtitle: e.target.value })}
+            />
+            <input
+              placeholder="Image URL (Cloudinary or any link)"
+              className="bg-bg-main border border-border p-3 rounded-lg focus:outline-none focus:border-primary-button text-text-primary placeholder-text-muted md:col-span-2"
+              value={currentSlide.imageUrl}
+              onChange={(e) => setCurrentSlide({ ...currentSlide, imageUrl: e.target.value })}
+            />
+            <div className="md:col-span-2 flex justify-end gap-3 mt-2">
+              <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 text-text-secondary hover:text-text-primary cursor-pointer">Cancel</button>
+              <button type="submit" className="bg-primary-button text-white px-6 py-2 rounded-lg hover:bg-primary-hover cursor-pointer">Save Slide</button>
             </div>
-            
-            <div className="flex-1 space-y-4 w-full">
-              <div>
-                <label className="block text-xs uppercase font-bold text-text-secondary mb-1">Headline Text</label>
-                <input 
-                  value={slide.title}
-                  onChange={(e) => handleUpdate(slide.id, 'title', e.target.value)}
-                  className="w-full bg-bg-main border border-border rounded-lg px-4 py-2 text-text-primary focus:border-primary-button outline-none"
-                />
+          </form>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6">
+        {loading ? (
+          <div className="text-text-secondary">Loading...</div>
+        ) : slides.length === 0 ? (
+          <div className="text-text-secondary">No hero slides yet.</div>
+        ) : (
+          slides.map((slide, index) => (
+            <div key={slide.id} className="bg-bg-surface border border-border rounded-xl p-6 flex flex-col md:flex-row gap-6 items-start">
+              <div className="w-full md:w-1/3 aspect-video bg-bg-section rounded-lg flex items-center justify-center text-text-muted border border-dashed border-border overflow-hidden">
+                {slide.imageUrl ? (
+                  <img src={slide.imageUrl} alt={slide.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="text-center">
+                    <ImageIcon className="mx-auto mb-2" />
+                    <span className="text-xs">Preview: Slide {index + 1}</span>
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="block text-xs uppercase font-bold text-text-secondary mb-1">Sub-headline</label>
-                <input 
-                  value={slide.subtitle}
-                  onChange={(e) => handleUpdate(slide.id, 'subtitle', e.target.value)}
-                  className="w-full bg-bg-main border border-border rounded-lg px-4 py-2 text-text-primary focus:border-primary-button outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs uppercase font-bold text-text-secondary mb-1">Image URL</label>
-                <div className="flex gap-2">
-                  <input 
-                    value={slide.image}
-                    onChange={(e) => handleUpdate(slide.id, 'image', e.target.value)}
-                    className="flex-1 bg-bg-main border border-border rounded-lg px-4 py-2 text-text-muted text-sm focus:border-primary-button outline-none"
-                  />
-                  <button className="bg-primary-button text-white px-4 rounded-lg text-sm hover:bg-primary-hover cursor-pointer">Update</button>
+
+              <div className="flex-1 space-y-3 w-full">
+                <div>
+                  <div className="text-lg font-bold text-text-primary">{slide.title}</div>
+                  <div className="text-text-secondary">{slide.subtitle}</div>
+                </div>
+                <div className="flex justify-end gap-3 pt-2 border-t border-border">
+                  <button onClick={() => openEdit(slide)} className="text-text-secondary hover:text-primary-button cursor-pointer">
+                    <Edit2 size={16} />
+                  </button>
+                  <button onClick={() => handleDelete(slide.id)} className="text-danger hover:text-red-700 cursor-pointer">
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
@@ -336,21 +407,47 @@ const HeroManager = () => {
 
 // 4. TESTIMONIALS COMPONENT (NEW)
 const TestimonialsManager = () => {
-  const [testimonials, setTestimonials] = useState(initialTestimonials);
+  const [testimonials, setTestimonials] = useState([]);
+  const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false);
   const [currentTestimonial, setCurrentTestimonial] = useState(null);
 
-  const handleDelete = (id) => {
-    setTestimonials(testimonials.filter(t => t.id !== id));
+  React.useEffect(() => {
+    const q = query(collection(db, 'testimonials'), orderBy('createdAt', 'desc'))
+    const unsubscribe = onSnapshot(q, (snap) => {
+      setTestimonials(
+        snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })),
+      )
+      setLoading(false)
+    })
+    return unsubscribe
+  }, [])
+
+  const handleDelete = async (id) => {
+    await deleteDoc(doc(db, 'testimonials', id))
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (currentTestimonial.id) {
-      setTestimonials(testimonials.map(t => t.id === currentTestimonial.id ? currentTestimonial : t));
-    } else {
-      setTestimonials([...testimonials, { ...currentTestimonial, id: Date.now() }]);
+    const payload = {
+      name: currentTestimonial.name || '',
+      text: currentTestimonial.text || '',
+      rating: Number(currentTestimonial.rating || 5),
+      updatedAt: serverTimestamp(),
     }
+
+    if (currentTestimonial.id) {
+      await setDoc(doc(db, 'testimonials', currentTestimonial.id), payload, { merge: true })
+    } else {
+      await addDoc(collection(db, 'testimonials'), {
+        ...payload,
+        createdAt: serverTimestamp(),
+      })
+    }
+
     setIsEditing(false);
     setCurrentTestimonial(null);
   };
@@ -414,7 +511,11 @@ const TestimonialsManager = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {testimonials.map((t) => (
+        {loading ? (
+          <div className="text-text-secondary">Loading...</div>
+        ) : testimonials.length === 0 ? (
+          <div className="text-text-secondary">No testimonials yet.</div>
+        ) : testimonials.map((t) => (
           <div key={t.id} className="bg-bg-surface p-6 rounded-xl border border-border shadow-sm flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-start mb-2">

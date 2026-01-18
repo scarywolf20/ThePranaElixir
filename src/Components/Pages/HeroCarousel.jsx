@@ -1,21 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ShopNowButton from '../Elements/ShopNowButton';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { db } from '../../firebase';
 const HeroCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  
-  const slides = [
-    { id: 1, title: "WAX TABLETS", image: "https://images.unsplash.com/photo-1603006905003-be475563bc59" },
-    { id: 2, title: "SOY CANDLES", image: "https://images.unsplash.com/photo-1603006905003-be475563bc59" },
-    { id: 3, title: "GENTLE SOAPS", image: "https://images.unsplash.com/photo-1603006905003-be475563bc59" }
-  ];
+
+  const [slides, setSlides] = useState([])
+
+  useEffect(() => {
+    const q = query(collection(db, 'hero_slides'), orderBy('createdAt', 'desc'))
+    const unsubscribe = onSnapshot(q, (snap) => {
+      setSlides(
+        snap.docs.map((d) => {
+          const data = d.data()
+          return {
+            id: d.id,
+            title: data.title || '',
+            subtitle: data.subtitle || '',
+            image: data.imageUrl || '',
+          }
+        }),
+      )
+    })
+    return unsubscribe
+  }, [])
+
+  const effectiveSlides = slides.length
+    ? slides
+    : [
+        { id: 1, title: "WAX TABLETS", subtitle: "", image: "https://images.unsplash.com/photo-1603006905003-be475563bc59" },
+        { id: 2, title: "SOY CANDLES", subtitle: "", image: "https://images.unsplash.com/photo-1603006905003-be475563bc59" },
+        { id: 3, title: "GENTLE SOAPS", subtitle: "", image: "https://images.unsplash.com/photo-1603006905003-be475563bc59" },
+      ];
+
+  const safeIndex = effectiveSlides.length ? currentIndex % effectiveSlides.length : 0
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % slides.length);
+      setCurrentIndex((prev) => (prev + 1) % effectiveSlides.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, [slides.length]);
+  }, [effectiveSlides.length]);
 
   return (
     <section className="relative w-full h-[70vh] overflow-hidden">
@@ -31,7 +57,7 @@ const HeroCarousel = () => {
           {/* Slide Image */}
           <div 
             className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${slides[currentIndex].image})` }}
+            style={{ backgroundImage: `url(${effectiveSlides[safeIndex].image})` }}
           />
 
           {/* Text & Button Overlay */}
@@ -42,7 +68,7 @@ const HeroCarousel = () => {
               transition={{ delay: 0.3, duration: 0.6 }}
               className="text-white text-6xl md:text-7xl font-serif tracking-[0.15em] mb-10"
             >
-              {slides[currentIndex].title}
+              {effectiveSlides[safeIndex].title}
             </motion.h2>
 
             <motion.div
@@ -58,13 +84,13 @@ const HeroCarousel = () => {
 
       {/* Navigation Indicators on the Right */}
       <div className="absolute right-10 top-1/2 -translate-y-1/2 flex flex-col gap-6 z-20">
-        {slides.map((_, index) => (
+        {effectiveSlides.map((_, index) => (
           <button 
             key={index} 
             onClick={() => setCurrentIndex(index)}
             className="relative w-4 h-4 flex items-center justify-center group"
           >
-            {currentIndex === index && (
+            {safeIndex === index && (
               <motion.div 
                 layoutId="activeCircle" 
                 className="absolute w-7 h-7 border-2 border-white rounded-full" 
@@ -72,7 +98,7 @@ const HeroCarousel = () => {
               />
             )}
             <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
-              currentIndex === index ? 'bg-white' : 'bg-white/50 group-hover:bg-white/80'
+              safeIndex === index ? 'bg-white' : 'bg-white/50 group-hover:bg-white/80'
             }`} />
           </button>
         ))}

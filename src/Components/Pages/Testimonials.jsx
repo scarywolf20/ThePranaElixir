@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 
-const testimonials = [
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { db } from '../../firebase';
+
+const fallbackTestimonials = [
   { id: 1, text: "The Banaras Stripe soap is a game changer. My skin has never felt more hydrated and clean.", author: "Ananya R." },
   { id: 2, text: "I love the commitment to natural ingredients. The packaging is as beautiful as the product.", author: "Marcus T." },
   { id: 3, text: "These soaps are works of art. They make my whole bathroom smell like a botanical garden.", author: "Sarah L." },
@@ -12,18 +15,41 @@ const testimonials = [
 
 const Testimonials = () => {
   const [index, setIndex] = useState(0);
+  const [testimonials, setTestimonials] = useState([])
+
+  useEffect(() => {
+    const q = query(collection(db, 'testimonials'), orderBy('createdAt', 'desc'))
+    const unsubscribe = onSnapshot(q, (snap) => {
+      setTestimonials(
+        snap.docs.map((d) => {
+          const data = d.data()
+          return {
+            id: d.id,
+            text: data.text || '',
+            author: data.name || '',
+            rating: Number(data.rating || 5),
+          }
+        }),
+      )
+    })
+    return unsubscribe
+  }, [])
+
+  const effectiveTestimonials = testimonials.length ? testimonials : fallbackTestimonials
+
+  const safeIndex = effectiveTestimonials.length ? index % effectiveTestimonials.length : 0
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setIndex((prev) => (prev + 1) % (testimonials.length - 2));
+      setIndex((prev) => (prev + 1) % (effectiveTestimonials.length - 2));
     }, 4000);
     return () => clearInterval(timer);
-  }, []);
+  }, [effectiveTestimonials.length]);
 
   const visibleTestimonials = [
-    testimonials[index],
-    testimonials[(index + 1) % testimonials.length],
-    testimonials[(index + 2) % testimonials.length]
+    effectiveTestimonials[safeIndex],
+    effectiveTestimonials[(safeIndex + 1) % effectiveTestimonials.length],
+    effectiveTestimonials[(safeIndex + 2) % effectiveTestimonials.length]
   ];
 
   return (
@@ -38,7 +64,7 @@ const Testimonials = () => {
       {/* The container needs a fixed max-width and relative positioning */}
       <div className="relative max-w-6xl mx-auto min-h-[300px]">
         <AnimatePresence mode="popLayout" initial={false}>
-          <motion.div 
+          <div 
             key={index}
             initial={{ opacity: 0, x: 100 }}
             animate={{ opacity: 1, x: 0 }}
@@ -67,18 +93,18 @@ const Testimonials = () => {
                 </div>
               </div>
             ))}
-          </motion.div>
+          </div>
         </AnimatePresence>
       </div>
 
       {/* Indicators */}
       <div className="flex justify-center gap-2 mt-10">
-        {Array.from({ length: testimonials.length - 2 }).map((_, i) => (
+        {Array.from({ length: effectiveTestimonials.length - 2 }).map((_, i) => (
           <button
             key={i}
             onClick={() => setIndex(i)}
             className={`h-1.5 rounded-full transition-all duration-300 ${
-              index === i ? 'w-6 bg-text-primary' : 'w-1.5 bg-text-secondary'
+              safeIndex === i ? 'w-6 bg-text-primary' : 'w-1.5 bg-text-secondary'
             }`}
           />
         ))}

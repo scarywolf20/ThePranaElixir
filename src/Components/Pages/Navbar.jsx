@@ -7,6 +7,8 @@ import { FaInstagram } from "react-icons/fa6";
 import { FaWhatsapp } from "react-icons/fa6";
 import CartDrawer from "../Elements/CartDrawer";
 import { useAuth } from '../../context/useAuth';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 const Navbar = () => {
   const [isShopOpen, setIsShopOpen] = useState(false);
@@ -14,6 +16,22 @@ const Navbar = () => {
   const location = useLocation();
   const activeTab = location.pathname;
   const { user } = useAuth();
+
+  const [promoText, setPromoText] = useState("10% Off On Your First Order. Use Code 'HAPPY'");
+
+  React.useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'promo'), (snap) => {
+      const data = snap.data()
+      if (data?.enabled === false) {
+        setPromoText('')
+        return
+      }
+      if (typeof data?.text === 'string') {
+        setPromoText(data.text)
+      }
+    })
+    return unsub
+  }, [])
 
   const navLinks = [
     { name: 'home', id: '/' },
@@ -27,9 +45,11 @@ const Navbar = () => {
     <>
       <nav className="w-full bg-bg-surface font-sans">
         {/* 1. Promo Bar */}
-        <div className="w-full bg-text-primary text-bg-surface py-1.5 text-center text-[10px] sm:text-xs tracking-[0.25em] uppercase">
-          10% Off On Your First Order. Use Code 'HAPPY'
-        </div>
+        {promoText ? (
+          <div className="w-full bg-text-primary text-bg-surface py-1.5 text-center text-[10px] sm:text-xs tracking-[0.25em] uppercase">
+            {promoText}
+          </div>
+        ) : null}
 
         {/* 2. Logo Section */}
         <div className="flex justify-center py-4">
