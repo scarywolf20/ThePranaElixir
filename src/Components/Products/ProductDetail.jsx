@@ -98,13 +98,12 @@ const ProductDetail = () => {
     return <div className="min-h-screen flex items-center justify-center bg-bg-main text-text-primary">Product not found</div>;
   }
 
-  const handleBuyNow = async () => {
+  const handleAddToCart = async () => {
     if (!user) {
       navigate('/customer/login')
       return
     }
     await addItem(product, quantity)
-    navigate('/checkout')
   }
 
   return (
@@ -174,11 +173,11 @@ const ProductDetail = () => {
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <button
-                onClick={handleBuyNow}
+                onClick={handleAddToCart}
                 className="flex-1 bg-primary-button text-white py-4 px-8 rounded-full font-medium hover:bg-primary-hover transition-colors shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2"
               >
                 <ShoppingBag size={20} />
-                Buy Now
+                Add to Cart
               </button>
               <button
                 onClick={toggleWishlist}
