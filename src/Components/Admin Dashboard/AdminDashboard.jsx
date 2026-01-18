@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Package, 
@@ -14,6 +15,9 @@ import {
   ChevronRight,
   Search
 } from 'lucide-react';
+
+import { signOut } from 'firebase/auth';
+import { auth } from '../../firebase';
 
 // --- MOCK DATA ---
 const initialProducts = [
@@ -380,8 +384,14 @@ const TestimonialsManager = () => {
 
 // --- MAIN LAYOUT COMPONENT ---
 
-const AdminDashboard = ({ onLogout }) => {
+const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('products');
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut(auth)
+    navigate('/admin/login')
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -434,7 +444,7 @@ const AdminDashboard = ({ onLogout }) => {
             <div className="w-10 h-10 rounded-full bg-bg-surface border border-border flex items-center justify-center text-text-primary font-bold">A</div>
             <div>
               <p className="text-sm font-bold text-text-primary">Admin User</p>
-              <button onClick={onLogout} className="text-xs text-text-muted hover:text-danger cursor-pointer text-left">Logout</button>
+              <button onClick={handleLogout} className="text-xs text-text-muted hover:text-danger cursor-pointer text-left">Logout</button>
             </div>
           </div>
         </div>

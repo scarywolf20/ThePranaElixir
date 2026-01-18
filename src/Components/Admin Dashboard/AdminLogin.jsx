@@ -1,20 +1,36 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Lock, User, ArrowRight, AlertCircle } from 'lucide-react';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
-const AdminLogin = ({ onLogin }) => {
+import { auth, db } from '../../firebase';
+
+const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // --- SIMPLE MOCK VALIDATION ---
-    // In a real app, you would send a POST request to your backend here.
-    if (email === 'admin@store.com' && password === 'admin123') {
-      onLogin(true); // Call the parent function to update state
-    } else {
-      setError('Invalid credentials. Try admin@store.com / admin123');
+
+    setError('');
+    try {
+      setSubmitting(true);
+      const cred = await signInWithEmailAndPassword(auth, email, password)
+      const adminSnap = await getDoc(doc(db, 'admins', cred.user.uid))
+      if (!adminSnap.exists()) {
+        await signOut(auth)
+        setError('You do not have admin access.')
+        return
+      }
+      navigate('/admin/dashboard')
+    } catch (err) {
+      setError(err?.message || 'Invalid credentials')
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -73,9 +89,10 @@ const AdminLogin = ({ onLogin }) => {
 
             <button 
               type="submit" 
-              className="w-full bg-primary-button hover:bg-primary-hover text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md hover:shadow-lg"
+              disabled={submitting}
+              className="w-full bg-primary-button hover:bg-primary-hover text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              Sign In to Dashboard
+              {submitting ? 'Signing In...' : 'Sign In to Dashboard'}
               <ArrowRight size={18} />
             </button>
           </form>

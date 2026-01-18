@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import Navbar from "./Components/Pages/Navbar"
 import HeroCarousel from "./Components/Pages/HeroCarousel"
 import ProductsSection from "./Components/Pages/Products"
@@ -26,6 +26,10 @@ import CustomerProfile from './Components/Customer/CustomerProfile'
 import Checkout from './Components/Orders/Checkout'
 import OrderSuccess from './Components/Orders/OrderSuccess'
 
+import { useAuth } from './context/useAuth'
+import { db } from './firebase'
+import { doc, getDoc } from 'firebase/firestore'
+
 function ScrollToTop() {
   const location = useLocation()
 
@@ -34,6 +38,46 @@ function ScrollToTop() {
   }, [location.pathname])
 
   return null
+}
+
+function AdminGuard({ children }) {
+  const { user, loading } = useAuth()
+  const [checking, setChecking] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    const run = async () => {
+      if (loading) return
+      if (!user) {
+        setIsAdmin(false)
+        setChecking(false)
+        return
+      }
+      try {
+        const snap = await getDoc(doc(db, 'admins', user.uid))
+        setIsAdmin(snap.exists())
+      } finally {
+        setChecking(false)
+      }
+    }
+
+    setChecking(true)
+    run()
+  }, [user, loading])
+
+  if (loading || checking) {
+    return (
+      <div className="min-h-screen bg-bg-main flex items-center justify-center text-text-primary">
+        Loading…
+      </div>
+    )
+  }
+
+  if (!user || !isAdmin) {
+    return <Navigate to="/admin/login" replace />
+  }
+
+  return children
 }
 
 function App() {
@@ -58,7 +102,14 @@ function App() {
         
         {/* Admin routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <AdminGuard>
+              <AdminDashboard />
+            </AdminGuard>
+          }
+        />
         
         {/* Product routes */}
         <Route path="/shop" element={<Shop />} />
