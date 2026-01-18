@@ -426,6 +426,36 @@ const OrdersManager = () => {
                 </div>
               </div>
             </div>
+
+            <div className="bg-bg-section p-4 rounded-lg mb-4">
+              <div className="text-xs uppercase font-bold text-text-muted mb-2">Items</div>
+              {Array.isArray(order.items) && order.items.length > 0 ? (
+                <div className="space-y-3">
+                  {order.items.map((it, idx) => (
+                    <div key={idx} className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {it.image ? (
+                          <img
+                            src={it.image}
+                            alt={it.title || it.productId || 'Item'}
+                            className="w-10 h-10 rounded-md object-cover border border-border"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-md bg-bg-main border border-border" />
+                        )}
+                        <div className="min-w-0">
+                          <div className="text-text-primary font-medium truncate">{it.title || it.productId || 'Item'}</div>
+                          <div className="text-text-secondary text-xs">Qty: {Number(it.quantity || 0)} · Rs. {Number(it.price || 0)}</div>
+                        </div>
+                      </div>
+                      <div className="text-text-primary font-bold shrink-0">Rs. {Number(it.price || 0) * Number(it.quantity || 0)}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-text-secondary text-sm">No items found on this order.</div>
+              )}
+            </div>
             
             <div className="bg-bg-section p-4 rounded-lg">
               <label className="block text-xs uppercase font-bold text-text-muted mb-2">Admin Instructions / Notes</label>
