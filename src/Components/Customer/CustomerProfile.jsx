@@ -14,6 +14,22 @@ import {
 import Navbar from '../Pages/Navbar';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/useAuth';
+import { updateProfile } from 'firebase/auth';
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
+} from 'firebase/firestore';
+import { db } from '../../firebase';
 
 // --- MOCK DATA ---
 const mockUser = {
@@ -23,23 +39,16 @@ const mockUser = {
   avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop"
 };
 
-const mockOrders = [
-  { id: "#ORD-7782", date: "Jan 15, 2026", total: 1200, status: "Delivered", items: ["Ceramic Vase", "Scented Candle"] },
-  { id: "#ORD-9921", date: "Jan 10, 2026", total: 850, status: "Shipped", items: ["Linen Tablecloth"] },
-  { id: "#ORD-1102", date: "Dec 28, 2025", total: 2400, status: "Processing", items: ["Wooden Bowl Set", "Postcards"] },
-];
-
-const mockAddresses = [
-  { id: 1, type: "Home", text: "123, Earthy Lane, Green Valley, Pune - 411001" },
-  { id: 2, type: "Work", text: "Tech Park, Building B, Mumbai - 400001" },
-];
-
 // --- SUB-COMPONENTS ---
 
 // 1. EDIT PROFILE TAB
-const ProfileTab = ({ user }) => {
+const ProfileTab = ({ user, onSave, saving }) => {
   const [localUser, setLocalUser] = useState(user);
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    setLocalUser(user)
+  }, [user])
 
   return (
     <div className="space-y-8">
@@ -71,7 +80,13 @@ const ProfileTab = ({ user }) => {
           </button>
         </div>
         
-        <form className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            onSave(localUser)
+          }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
+        >
           <div className="space-y-2">
             <label className="text-xs font-bold uppercase text-text-secondary">Full Name</label>
             <input 
@@ -102,8 +117,12 @@ const ProfileTab = ({ user }) => {
           
           {isEditing && (
             <div className="md:col-span-2 flex justify-end">
-              <button className="bg-primary-button text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-hover transition-colors shadow-sm cursor-pointer">
-                <Save size={18} /> Save Changes
+              <button
+                type="submit"
+                disabled={saving}
+                className="bg-primary-button text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-hover transition-colors shadow-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                <Save size={18} /> {saving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           )}
@@ -114,11 +133,16 @@ const ProfileTab = ({ user }) => {
 };
 
 // 2. ORDERS TAB
-const OrdersTab = () => {
+const OrdersTab = ({ orders, loading }) => {
   return (
     <div className="space-y-6">
       <h3 className="text-xl font-serif text-text-primary mb-6">Order History</h3>
-      {mockOrders.map((order) => (
+      {loading ? (
+        <div className="text-text-secondary">Loading orders...</div>
+      ) : orders.length === 0 ? (
+        <div className="text-text-secondary">No orders yet.</div>
+      ) : (
+        orders.map((order) => (
         <div key={order.id} className="bg-bg-surface border border-border rounded-xl p-6 hover:shadow-md transition-shadow">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-border pb-4">
             <div>
@@ -143,21 +167,31 @@ const OrdersTab = () => {
             </button>
           </div>
         </div>
-      ))}
+        ))
+      )}
     </div>
   );
 };
 
 // 3. ADDRESS TAB
-const AddressTab = () => {
+const AddressTab = ({ addresses, onAdd, onRemove, saving }) => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-serif text-text-primary">Saved Addresses</h3>
-        <button className="text-primary-button text-sm font-bold uppercase hover:underline cursor-pointer">+ Add New</button>
+        <button
+          onClick={onAdd}
+          disabled={saving}
+          className="text-primary-button text-sm font-bold uppercase hover:underline cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+        >
+          + Add New
+        </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {mockAddresses.map((addr) => (
+        {addresses.length === 0 ? (
+          <div className="text-text-secondary">No addresses saved yet.</div>
+        ) : (
+          addresses.map((addr) => (
           <div key={addr.id} className="bg-bg-surface border border-border p-6 rounded-xl flex flex-col justify-between h-40">
             <div>
               <div className="flex items-center gap-2 mb-2">
@@ -168,10 +202,17 @@ const AddressTab = () => {
             </div>
             <div className="flex gap-4 mt-4 text-sm font-medium">
               <button className="text-text-primary hover:text-primary-button cursor-pointer">Edit</button>
-              <button className="text-danger hover:text-red-700 cursor-pointer">Remove</button>
+              <button
+                onClick={() => onRemove(addr.id)}
+                disabled={saving}
+                className="text-danger hover:text-red-700 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                Remove
+              </button>
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
@@ -184,20 +225,159 @@ const CustomerProfile = () => {
   const navigate = useNavigate();
   const { user, loading, logout } = useAuth();
 
+  const [profileDoc, setProfileDoc] = useState(null)
+  const [addresses, setAddresses] = useState([])
+  const [wishlist, setWishlist] = useState([])
+  const [orders, setOrders] = useState([])
+
+  const [showAddressModal, setShowAddressModal] = useState(false)
+  const [addressForm, setAddressForm] = useState({ type: 'Home', text: '' })
+
+  const [loadingData, setLoadingData] = useState(true)
+  const [saving, setSaving] = useState(false)
+
   const profileUser = useMemo(() => {
-    if (!user) return mockUser;
+    if (!user) return mockUser
     return {
       ...mockUser,
-      name: user.displayName || mockUser.name,
-      email: user.email || mockUser.email,
+      name: profileDoc?.name || user.displayName || mockUser.name,
+      email: profileDoc?.email || user.email || mockUser.email,
+      phone: profileDoc?.phone || mockUser.phone,
+      avatar: profileDoc?.avatarUrl || mockUser.avatar,
     }
-  }, [user]);
+  }, [user, profileDoc]);
+
+  const handleSaveProfile = async (nextUser) => {
+    if (!user) return
+    setSaving(true)
+    try {
+      await setDoc(
+        doc(db, 'users', user.uid),
+        {
+          name: nextUser.name,
+          email: nextUser.email,
+          phone: nextUser.phone,
+          avatarUrl: nextUser.avatar,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      )
+
+      if (nextUser.name && nextUser.name !== user.displayName) {
+        await updateProfile(user, { displayName: nextUser.name })
+      }
+
+      setProfileDoc((prev) => ({
+        ...(prev || {}),
+        name: nextUser.name,
+        email: nextUser.email,
+        phone: nextUser.phone,
+        avatarUrl: nextUser.avatar,
+      }))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const openAddressModal = () => {
+    setAddressForm({ type: 'Home', text: '' })
+    setShowAddressModal(true)
+  }
+
+  const closeAddressModal = () => {
+    setShowAddressModal(false)
+  }
+
+  const handleCreateAddress = async (e) => {
+    e.preventDefault()
+    if (!user) return
+    if (!addressForm.text.trim()) return
+
+    setSaving(true)
+    try {
+      const ref = await addDoc(collection(db, 'users', user.uid, 'addresses'), {
+        type: addressForm.type,
+        text: addressForm.text.trim(),
+        createdAt: serverTimestamp(),
+      })
+      setAddresses((prev) => [
+        ...prev,
+        { id: ref.id, type: addressForm.type, text: addressForm.text.trim() },
+      ])
+      closeAddressModal()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleRemoveAddress = async (addressId) => {
+    if (!user) return
+    setSaving(true)
+    try {
+      await deleteDoc(doc(db, 'users', user.uid, 'addresses', addressId))
+      setAddresses((prev) => prev.filter((a) => a.id !== addressId))
+    } finally {
+      setSaving(false)
+    }
+  }
 
   useEffect(() => {
     if (!loading && !user) {
       navigate('/customer/login')
     }
   }, [loading, user, navigate])
+
+  useEffect(() => {
+    const load = async () => {
+      if (!user) return
+      setLoadingData(true)
+      try {
+        const userRef = doc(db, 'users', user.uid)
+        const userSnap = await getDoc(userRef)
+        setProfileDoc(userSnap.exists() ? userSnap.data() : null)
+
+        const addressesSnap = await getDocs(collection(db, 'users', user.uid, 'addresses'))
+        setAddresses(
+          addressesSnap.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+          })),
+        )
+
+        const wishlistSnap = await getDocs(collection(db, 'users', user.uid, 'wishlist'))
+        setWishlist(
+          wishlistSnap.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+          })),
+        )
+
+        const ordersQ = query(
+          collection(db, 'orders'),
+          where('userId', '==', user.uid),
+          orderBy('createdAt', 'desc'),
+          limit(20),
+        )
+        const ordersSnap = await getDocs(ordersQ)
+        setOrders(
+          ordersSnap.docs.map((d) => {
+            const data = d.data()
+            return {
+              id: data.orderNumber || `#${d.id.slice(0, 8).toUpperCase()}`,
+              date: data.createdAt?.toDate?.()?.toLocaleDateString?.() || '',
+              total: data.total || 0,
+              status: data.status || 'Processing',
+              items: (data.items || []).map((it) => it.title || it.name || it.productId).filter(Boolean),
+            }
+          }),
+        )
+      } finally {
+        setLoadingData(false)
+      }
+    }
+
+    load()
+  }, [user])
 
   const handleLogout = async () => {
     await logout();
@@ -216,9 +396,14 @@ const CustomerProfile = () => {
       <Navbar />
 
       <div className="container mx-auto px-4 py-12">
-        <h1 className="text-3xl md:text-4xl font-serif text-text-primary mb-8 text-center md:text-left">
-          My Account
-        </h1>
+        <div className="mb-8 text-center md:text-left">
+          <h1 className="text-3xl md:text-4xl font-serif text-text-primary">
+            My Account
+          </h1>
+          <p className="text-text-secondary mt-2">
+            {profileUser.name} • {profileUser.email}
+          </p>
+        </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
           
@@ -253,20 +438,134 @@ const CustomerProfile = () => {
 
           {/* MAIN CONTENT AREA */}
           <main className="flex-1 bg-white/50 backdrop-blur-sm rounded-xl border border-border p-6 md:p-8 min-h-[500px]">
-            {activeTab === 'profile' && <ProfileTab user={profileUser} />}
-            {activeTab === 'orders' && <OrdersTab />}
-            {activeTab === 'addresses' && <AddressTab />}
+            {activeTab === 'profile' && (
+              <ProfileTab user={profileUser} onSave={handleSaveProfile} saving={saving} />
+            )}
+            {activeTab === 'orders' && (
+              <OrdersTab orders={orders} loading={loadingData} />
+            )}
+            {activeTab === 'addresses' && (
+              <AddressTab
+                addresses={addresses}
+                onAdd={openAddressModal}
+                onRemove={handleRemoveAddress}
+                saving={saving}
+              />
+            )}
             {activeTab === 'wishlist' && (
-              <div className="text-center py-20">
-                <Heart size={48} className="mx-auto text-text-muted mb-4" />
-                <h3 className="text-xl text-text-primary">Your wishlist is empty</h3>
-                <p className="text-text-secondary mt-2">Save items you love to view them here.</p>
+              <div className="space-y-6">
+                <h3 className="text-xl font-serif text-text-primary">Wishlist</h3>
+                {loadingData ? (
+                  <div className="text-text-secondary">Loading wishlist...</div>
+                ) : wishlist.length === 0 ? (
+                  <div className="text-text-secondary">Your wishlist is empty.</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {wishlist.map((w) => (
+                      <div
+                        key={w.id}
+                        className="bg-bg-surface border border-border p-6 rounded-xl flex items-center justify-between"
+                      >
+                        <div>
+                          <div className="font-bold text-text-primary">
+                            {w.title || w.name || w.productId || w.id}
+                          </div>
+                          <div className="text-sm text-text-secondary">
+                            {w.productId ? `Product: ${w.productId}` : ''}
+                          </div>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (!user) return
+                            setSaving(true)
+                            try {
+                              await deleteDoc(doc(db, 'users', user.uid, 'wishlist', w.id))
+                              setWishlist((prev) => prev.filter((x) => x.id !== w.id))
+                            } finally {
+                              setSaving(false)
+                            }
+                          }}
+                          disabled={saving}
+                          className="text-danger hover:text-red-700 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </main>
 
         </div>
       </div>
+
+      {showAddressModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            className="absolute inset-0 bg-black/50"
+            onClick={closeAddressModal}
+            aria-label="Close"
+          />
+          <div className="relative w-full max-w-lg bg-bg-surface border border-border rounded-2xl shadow-xl overflow-hidden">
+            <div className="p-6 border-b border-border flex items-center justify-between">
+              <h3 className="text-lg font-bold text-text-primary uppercase tracking-wider">Add Address</h3>
+              <button
+                onClick={closeAddressModal}
+                className="text-text-secondary hover:text-text-primary cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateAddress} className="p-6 space-y-5">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-text-secondary tracking-wider">Type</label>
+                <select
+                  value={addressForm.type}
+                  onChange={(e) => setAddressForm((p) => ({ ...p, type: e.target.value }))}
+                  className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:outline-none focus:border-primary-button cursor-pointer"
+                >
+                  <option value="Home">Home</option>
+                  <option value="Work">Work</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-text-secondary tracking-wider">Address</label>
+                <textarea
+                  value={addressForm.text}
+                  onChange={(e) => setAddressForm((p) => ({ ...p, text: e.target.value }))}
+                  rows={4}
+                  className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:outline-none focus:border-primary-button"
+                  placeholder="House no, street, city, pincode"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeAddressModal}
+                  className="px-5 py-2 rounded-lg border border-border text-text-primary hover:bg-bg-main transition-colors cursor-pointer"
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-lg bg-primary-button text-white hover:bg-primary-hover transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                  disabled={saving}
+                >
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

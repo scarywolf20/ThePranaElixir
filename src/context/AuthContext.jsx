@@ -7,8 +7,9 @@ import {
   signOut,
   updateProfile,
 } from 'firebase/auth'
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore'
 
-import { auth } from '../firebase'
+import { auth, db } from '../firebase'
 
 const AuthContext = createContext(null)
 
@@ -34,10 +35,29 @@ export function AuthProvider({ children }) {
         if (name) {
           await updateProfile(cred.user, { displayName: name })
         }
+
+        await setDoc(
+          doc(db, 'users', cred.user.uid),
+          {
+            name: name || cred.user.displayName || '',
+            email: cred.user.email || email,
+            createdAt: serverTimestamp(),
+          },
+          { merge: true },
+        )
         return cred.user
       },
       async login({ email, password }) {
         const cred = await signInWithEmailAndPassword(auth, email, password)
+
+        await setDoc(
+          doc(db, 'users', cred.user.uid),
+          {
+            email: cred.user.email || email,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true },
+        )
         return cred.user
       },
       async logout() {
