@@ -83,12 +83,22 @@ const Checkout = () => {
 
   useEffect(() => {
     const selected = addresses.find((a) => a.id === selectedAddressId)
-    if (selected?.text) {
-      setShippingForm((prev) => ({
-        ...prev,
-        address: selected.text,
-      }))
-    }
+    if (!selected) return
+
+    const nextAddress = String(selected.addressLine || selected.text || '').trim()
+    const nextCity = String(selected.city || '').trim()
+    const nextPostal = String(selected.postalCode || '').trim()
+    const nextFirstName = String(selected.firstName || '').trim()
+    const nextLastName = String(selected.lastName || '').trim()
+
+    setShippingForm((prev) => ({
+      ...prev,
+      address: nextAddress || prev.address,
+      city: nextCity || prev.city,
+      postalCode: nextPostal || prev.postalCode,
+      firstName: nextFirstName || prev.firstName,
+      lastName: nextLastName || prev.lastName,
+    }))
   }, [addresses, selectedAddressId])
 
   const estimatedDelivery = useMemo(() => {

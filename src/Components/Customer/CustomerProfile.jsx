@@ -176,6 +176,15 @@ const OrdersTab = ({ orders, loading }) => {
 
 // 3. ADDRESS TAB
 const AddressTab = ({ addresses, onAdd, onRemove, saving }) => {
+  const formatAddress = (addr) => {
+    if (!addr) return ''
+    if (addr.addressLine || addr.city || addr.postalCode) {
+      const parts = [addr.addressLine, addr.city, addr.postalCode].filter(Boolean)
+      return parts.join(', ')
+    }
+    return addr.text || ''
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -199,7 +208,7 @@ const AddressTab = ({ addresses, onAdd, onRemove, saving }) => {
                 <MapPin size={18} className="text-primary-button" />
                 <span className="font-bold text-text-primary">{addr.type}</span>
               </div>
-              <p className="text-text-secondary text-sm leading-relaxed">{addr.text}</p>
+              <p className="text-text-secondary text-sm leading-relaxed">{formatAddress(addr)}</p>
             </div>
             <div className="flex gap-4 mt-4 text-sm font-medium">
               <button className="text-text-primary hover:text-primary-button cursor-pointer">Edit</button>
@@ -232,7 +241,15 @@ const CustomerProfile = () => {
   const [orders, setOrders] = useState([])
 
   const [showAddressModal, setShowAddressModal] = useState(false)
-  const [addressForm, setAddressForm] = useState({ type: 'Home', text: '' })
+  const [addressForm, setAddressForm] = useState({
+    type: 'Home',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    addressLine: '',
+    city: '',
+    postalCode: '',
+  })
 
   const [loadingData, setLoadingData] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -281,7 +298,15 @@ const CustomerProfile = () => {
   }
 
   const openAddressModal = () => {
-    setAddressForm({ type: 'Home', text: '' })
+    setAddressForm({
+      type: 'Home',
+      firstName: profileUser?.name ? String(profileUser.name).split(' ')[0] : '',
+      lastName: profileUser?.name ? String(profileUser.name).split(' ').slice(1).join(' ') : '',
+      phone: profileUser?.phone || '',
+      addressLine: '',
+      city: '',
+      postalCode: '',
+    })
     setShowAddressModal(true)
   }
 
@@ -292,18 +317,40 @@ const CustomerProfile = () => {
   const handleCreateAddress = async (e) => {
     e.preventDefault()
     if (!user) return
-    if (!addressForm.text.trim()) return
+    if (!addressForm.addressLine.trim()) return
+    if (!addressForm.city.trim()) return
+    if (!addressForm.postalCode.trim()) return
 
     setSaving(true)
     try {
+      const text = [addressForm.addressLine, addressForm.city, addressForm.postalCode]
+        .map((x) => String(x || '').trim())
+        .filter(Boolean)
+        .join(', ')
       const ref = await addDoc(collection(db, 'users', user.uid, 'addresses'), {
         type: addressForm.type,
-        text: addressForm.text.trim(),
+        firstName: addressForm.firstName.trim(),
+        lastName: addressForm.lastName.trim(),
+        phone: addressForm.phone.trim(),
+        addressLine: addressForm.addressLine.trim(),
+        city: addressForm.city.trim(),
+        postalCode: addressForm.postalCode.trim(),
+        text,
         createdAt: serverTimestamp(),
       })
       setAddresses((prev) => [
         ...prev,
-        { id: ref.id, type: addressForm.type, text: addressForm.text.trim() },
+        {
+          id: ref.id,
+          type: addressForm.type,
+          firstName: addressForm.firstName.trim(),
+          lastName: addressForm.lastName.trim(),
+          phone: addressForm.phone.trim(),
+          addressLine: addressForm.addressLine.trim(),
+          city: addressForm.city.trim(),
+          postalCode: addressForm.postalCode.trim(),
+          text,
+        },
       ])
       closeAddressModal()
     } finally {
@@ -546,16 +593,62 @@ const CustomerProfile = () => {
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-text-secondary tracking-wider">Address</label>
-                <textarea
-                  value={addressForm.text}
-                  onChange={(e) => setAddressForm((p) => ({ ...p, text: e.target.value }))}
-                  rows={4}
-                  className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:outline-none focus:border-primary-button"
-                  placeholder="House no, street, city, pincode"
-                  required
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-text-secondary tracking-wider">First Name</label>
+                  <input
+                    value={addressForm.firstName}
+                    onChange={(e) => setAddressForm((p) => ({ ...p, firstName: e.target.value }))}
+                    className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:outline-none focus:border-primary-button"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-text-secondary tracking-wider">Last Name</label>
+                  <input
+                    value={addressForm.lastName}
+                    onChange={(e) => setAddressForm((p) => ({ ...p, lastName: e.target.value }))}
+                    className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:outline-none focus:border-primary-button"
+                    required
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-xs font-bold uppercase text-text-secondary tracking-wider">Phone</label>
+                  <input
+                    value={addressForm.phone}
+                    onChange={(e) => setAddressForm((p) => ({ ...p, phone: e.target.value }))}
+                    className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:outline-none focus:border-primary-button"
+                    placeholder="+91..."
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-xs font-bold uppercase text-text-secondary tracking-wider">Address Line</label>
+                  <input
+                    value={addressForm.addressLine}
+                    onChange={(e) => setAddressForm((p) => ({ ...p, addressLine: e.target.value }))}
+                    className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:outline-none focus:border-primary-button"
+                    placeholder="House no, street, apartment"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-text-secondary tracking-wider">City</label>
+                  <input
+                    value={addressForm.city}
+                    onChange={(e) => setAddressForm((p) => ({ ...p, city: e.target.value }))}
+                    className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:outline-none focus:border-primary-button"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-text-secondary tracking-wider">Postal Code</label>
+                  <input
+                    value={addressForm.postalCode}
+                    onChange={(e) => setAddressForm((p) => ({ ...p, postalCode: e.target.value }))}
+                    className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:outline-none focus:border-primary-button"
+                    required
+                  />
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
