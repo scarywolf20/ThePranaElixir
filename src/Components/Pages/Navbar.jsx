@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FaUser } from "react-icons/fa"
 // import { FaSearch } from "react-icons/fa";
@@ -6,17 +6,14 @@ import { FaCartShopping } from "react-icons/fa6";
 import { FaInstagram } from "react-icons/fa6";
 import { FaWhatsapp } from "react-icons/fa6";
 import CartDrawer from "../Elements/CartDrawer";
+import { useAuth } from '../../context/useAuth';
 
 const Navbar = () => {
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState(location.pathname);
-
-  // Update activeTab when route changes
-  useEffect(() => {
-    setActiveTab(location.pathname);
-  }, [location.pathname]);
+  const activeTab = location.pathname;
+  const { user } = useAuth();
 
   const navLinks = [
     { name: 'home', id: '/' },
@@ -75,11 +72,10 @@ const Navbar = () => {
                     // RENDER AS BUTTON (For Dropdowns)
                     <button
                       onMouseEnter={() => setIsShopOpen(true)}
-                      onClick={() => setActiveTab(link.id)}
                       className={`
                         relative pb-1 text-sm tracking-[0.2em] uppercase font-medium transition-colors cursor-pointer
                         hover:text-primary-button
-                        ${isActive ? 'text-text-primary' : 'text-text-secondary'}
+                        ${activeTab === link.id ? 'text-text-primary' : 'text-text-secondary'}
                       `}
                     >
                       <span className="flex items-center">
@@ -139,12 +135,23 @@ const Navbar = () => {
             {/* <button className="hover:text-primary-button cursor-pointer transition-all hover:scale-105">
               <FaSearch className="text-xl" />
             </button> */}
-            <Link 
-              to="/customer/login" 
-              className="hover:text-primary-button cursor-pointer transition-all hover:scale-105 inline-block"
-            >
-              <FaUser className="text-xl" />
-            </Link>
+            {user ? (
+              <Link 
+                to="/customer/profile" 
+                className="hover:text-primary-button cursor-pointer transition-all hover:scale-105 inline-block"
+                title="My Profile"
+              >
+                <FaUser className="text-xl" />
+              </Link>
+            ) : (
+              <Link 
+                to="/customer/login" 
+                className="hover:text-primary-button cursor-pointer transition-all hover:scale-105 inline-block"
+                title="Login"
+              >
+                <FaUser className="text-xl" />
+              </Link>
+            )}
             <button 
               onClick={() => setIsCartOpen(true)}
               className="relative hover:text-primary-button cursor-pointer transition-all hover:scale-105"

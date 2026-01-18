@@ -380,6 +380,18 @@ const CustomerProfile = () => {
     load()
   }, [user])
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-bg-main flex items-center justify-center text-text-primary">
+        Loading…
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null // useEffect will redirect
+  }
+
   const handleLogout = async () => {
     await logout();
     navigate('/customer/login');
