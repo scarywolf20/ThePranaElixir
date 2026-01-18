@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs, limit, query, where } from 'firebase/firestore';
+import { collection, getDocsFromCache, getDocsFromServer, limit, query, where } from 'firebase/firestore';
 import { db } from '../../firebase';
 
 const BestSellers = () => {
@@ -12,9 +12,8 @@ const BestSellers = () => {
       setLoading(true)
       try {
         const q = query(collection(db, 'products'), where('isBestSeller', '==', true), limit(3))
-        const snap = await getDocs(q)
-        setProducts(
-          snap.docs.map((d) => {
+        const mapSnap = (snap) => {
+          return snap.docs.map((d) => {
             const data = d.data()
             return {
               id: d.id,
@@ -23,14 +22,43 @@ const BestSellers = () => {
               imageUrl: data.imageUrl || '',
               stock: Number(data.stock || 0),
             }
-          }),
-        )
+          })
+        }
+
+        // 1) Try cache first for near-instant paint.
+        try {
+          const cacheSnap = await getDocsFromCache(q)
+          if (cacheSnap.size > 0) {
+            setProducts(mapSnap(cacheSnap))
+          }
+        } catch {
+          // Cache miss is normal on first visit.
+        }
+
+        // 2) Always refresh from server.
+        const serverSnap = await getDocsFromServer(q)
+        setProducts(mapSnap(serverSnap))
       } finally {
         setLoading(false)
       }
     }
     load()
   }, [])
+
+  const SkeletonCard = () => {
+    return (
+      <div className="flex flex-col group animate-pulse">
+        <div className="aspect-[4/5] rounded-[2.5rem] overflow-hidden bg-gray-200 mb-6" />
+        <div className="flex justify-between items-start px-2">
+          <div className="flex flex-col space-y-2 w-full">
+            <div className="h-4 w-3/4 bg-gray-200 rounded" />
+            <div className="h-4 w-1/3 bg-gray-200 rounded" />
+          </div>
+          <div className="h-8 w-20 bg-gray-200 rounded-full" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <section className="max-w-7xl mx-auto px-6 py-16">
@@ -42,7 +70,11 @@ const BestSellers = () => {
       {/* Product Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
         {loading ? (
-          <div className="text-center text-text-secondary md:col-span-3">Loading...</div>
+          <>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </>
         ) : products.length === 0 ? (
           <div className="text-center text-text-secondary md:col-span-3">No best sellers selected.</div>
         ) : products.map((product) => (
