@@ -1,31 +1,36 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { collection, getDocs, limit, query, where } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 const BestSellers = () => {
-  const products = [
-    {
-      id: 1,
-      name: "THE BANARAS STRIPE",
-      price: "₹445.00",
-      image: "/path-to-your-soap-image.jpg",
-      status: "Out of Stock"
-    },
-    {
-      id: 1,
-      name: "THE BANARAS STRIPE",
-      price: "₹445.00",
-      image: "/path-to-your-soap-image.jpg",
-      status: "Out of Stock"
-    },
-    {
-      id: 1,
-      name: "THE BANARAS STRIPE",
-      price: "₹445.00",
-      image: "/path-to-your-soap-image.jpg",
-      status: "Out of Stock"
-    },
-    
-    // Add more product objects here
-  ];
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      try {
+        const q = query(collection(db, 'products'), where('isBestSeller', '==', true), limit(3))
+        const snap = await getDocs(q)
+        setProducts(
+          snap.docs.map((d) => {
+            const data = d.data()
+            return {
+              id: d.id,
+              name: data.name || '',
+              price: Number(data.price || 0),
+              imageUrl: data.imageUrl || '',
+              stock: Number(data.stock || 0),
+            }
+          }),
+        )
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
 
   return (
     <section className="max-w-7xl mx-auto px-6 py-16">
@@ -36,13 +41,17 @@ const BestSellers = () => {
 
       {/* Product Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-        {products.map((product) => (
-          <div key={product.id} className="flex flex-col group">
+        {loading ? (
+          <div className="text-center text-text-secondary md:col-span-3">Loading...</div>
+        ) : products.length === 0 ? (
+          <div className="text-center text-text-secondary md:col-span-3">No best sellers selected.</div>
+        ) : products.map((product) => (
+          <Link to={`/product/${product.id}`} key={product.id} className="flex flex-col group">
             
             {/* Image Container with Rounded Corners */}
             <div className="aspect-[4/5] rounded-[2.5rem] overflow-hidden bg-gray-100 mb-6">
               <img
-                src={product.image}
+                src={product.imageUrl}
                 alt={product.name}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
@@ -55,18 +64,18 @@ const BestSellers = () => {
                   {product.name}
                 </h3>
                 <p className="text-gray-500 font-light">
-                  {product.price}
+                  Rs. {product.price}/-
                 </p>
               </div>
 
               {/* Status Pill / Button */}
-              {product.status === "Out of Stock" && (
+              {product.stock <= 0 && (
                 <div className="border border-[#6D5447] text-[#6D5447] px-4 py-2 rounded-full text-xs font-light tracking-tight">
-                  {product.status}
+                  Out of Stock
                 </div>
               )}
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </section>

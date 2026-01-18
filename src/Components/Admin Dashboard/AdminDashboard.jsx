@@ -41,6 +41,7 @@ const ProductsManager = () => {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
+  const [saveError, setSaveError] = useState('')
 
   React.useEffect(() => {
     const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'))
@@ -63,6 +64,7 @@ const ProductsManager = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    setSaveError('')
 
     const payload = {
       name: currentProduct.name || '',
@@ -71,7 +73,17 @@ const ProductsManager = () => {
       category: currentProduct.category || '',
       imageUrl: currentProduct.imageUrl || '',
       description: currentProduct.description || '',
+      isBestSeller: Boolean(currentProduct.isBestSeller),
       updatedAt: serverTimestamp(),
+    }
+
+    const existingIsBestSeller = Boolean(
+      products.find((p) => String(p.id) === String(currentProduct.id))?.isBestSeller,
+    )
+    const bestSellerCount = products.filter((p) => Boolean(p.isBestSeller)).length
+    if (payload.isBestSeller && !existingIsBestSeller && bestSellerCount >= 3) {
+      setSaveError('You can select a maximum of 3 best sellers.')
+      return
     }
 
     if (currentProduct.id) {
@@ -88,8 +100,9 @@ const ProductsManager = () => {
   };
 
   const openEdit = (
-    product = { name: '', price: '', stock: '', category: '', imageUrl: '', description: '' },
+    product = { name: '', price: '', stock: '', category: '', imageUrl: '', description: '', isBestSeller: false },
   ) => {
+    setSaveError('')
     setCurrentProduct(product);
     setIsEditing(true);
   };
@@ -151,6 +164,21 @@ const ProductsManager = () => {
               value={currentProduct.description}
               onChange={(e) => setCurrentProduct({...currentProduct, description: e.target.value})}
             />
+
+            <label className="md:col-span-2 flex items-center gap-3 bg-bg-main border border-border p-3 rounded-lg cursor-pointer">
+              <input
+                type="checkbox"
+                checked={Boolean(currentProduct.isBestSeller)}
+                onChange={(e) => setCurrentProduct({ ...currentProduct, isBestSeller: e.target.checked })}
+                className="h-4 w-4"
+              />
+              <span className="text-text-primary font-medium">Mark as Best Seller</span>
+              <span className="text-text-secondary text-xs ml-auto">Max 3</span>
+            </label>
+
+            {saveError ? (
+              <div className="md:col-span-2 text-danger text-sm">{saveError}</div>
+            ) : null}
             <div className="md:col-span-2 flex justify-end gap-3 mt-2">
               <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 text-text-secondary hover:text-text-primary cursor-pointer">Cancel</button>
               <button type="submit" className="bg-primary-button text-white px-6 py-2 rounded-lg hover:bg-primary-hover cursor-pointer">Save Product</button>
@@ -167,17 +195,18 @@ const ProductsManager = () => {
               <th className="p-4">Category</th>
               <th className="p-4">Price</th>
               <th className="p-4">Stock</th>
+              <th className="p-4">Best Seller</th>
               <th className="p-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {loading ? (
               <tr>
-                <td className="p-4 text-text-secondary" colSpan={5}>Loading...</td>
+                <td className="p-4 text-text-secondary" colSpan={6}>Loading...</td>
               </tr>
             ) : products.length === 0 ? (
               <tr>
-                <td className="p-4 text-text-secondary" colSpan={5}>No products yet.</td>
+                <td className="p-4 text-text-secondary" colSpan={6}>No products yet.</td>
               </tr>
             ) : products.map((product) => (
               <tr key={product.id} className="hover:bg-bg-main transition-colors">
@@ -185,6 +214,7 @@ const ProductsManager = () => {
                 <td className="p-4 text-text-secondary">{product.category}</td>
                 <td className="p-4 text-text-primary">${product.price}</td>
                 <td className="p-4 text-text-secondary">{product.stock}</td>
+                <td className="p-4 text-text-secondary">{product.isBestSeller ? 'Yes' : 'No'}</td>
                 <td className="p-4 flex justify-end gap-3">
                   <button onClick={() => openEdit(product)} className="text-accent hover:text-primary-button cursor-pointer">
                     <Edit2 size={18} />
