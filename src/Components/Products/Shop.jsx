@@ -9,6 +9,8 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  getDocsFromCache,
+  getDocsFromServer,
   orderBy,
   limit,
   query,
@@ -90,7 +92,22 @@ const Shop = () => {
           orderBy('createdAt', 'desc'),
           limit(PAGE_SIZE),
         )
-        const snap = await getDocs(q)
+
+        // 1) Try cache first for near-instant paint (works after first visit due to persistence).
+        try {
+          const cacheSnap = await getDocsFromCache(q)
+          if (cacheSnap.size > 0) {
+            setProducts(cacheSnap.docs.map(mapProductDoc))
+            setLastProductDoc(cacheSnap.docs[cacheSnap.docs.length - 1] || null)
+            setHasMoreProducts(cacheSnap.size === PAGE_SIZE)
+            setLoadingProducts(false)
+          }
+        } catch {
+          // Cache miss is normal on first visit.
+        }
+
+        // 2) Always refresh from server.
+        const snap = await getDocsFromServer(q)
         setProducts(snap.docs.map(mapProductDoc))
         setLastProductDoc(snap.docs[snap.docs.length - 1] || null)
         setHasMoreProducts(snap.size === PAGE_SIZE)
@@ -270,10 +287,21 @@ const Shop = () => {
         </div>
 
         {/* --- PRODUCTS GRID --- */}
-        {loadingProducts ? (
-          <div className="text-center py-20 bg-bg-surface rounded-[2.5rem] border border-dashed border-border">
-            <h3 className="text-2xl font-serif text-text-primary mb-2">Loading products...</h3>
-            <p className="text-text-secondary">Please wait</p>
+        {loadingProducts && products.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
+            {Array.from({ length: PAGE_SIZE }).map((_, idx) => (
+              <div key={idx} className="group">
+                <div className="aspect-[3/4] overflow-hidden rounded-[2.5rem] bg-bg-section mb-6 shadow-sm relative animate-pulse">
+                  <div className="w-full h-full bg-bg-main" />
+                  <div className="absolute top-4 left-4 h-6 w-20 rounded-full bg-white/70" />
+                  <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/70" />
+                </div>
+                <div className="text-center space-y-2 animate-pulse">
+                  <div className="h-6 w-2/3 mx-auto rounded bg-bg-section" />
+                  <div className="h-4 w-1/3 mx-auto rounded bg-bg-section" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredProducts.length > 0 ? (
           <>
