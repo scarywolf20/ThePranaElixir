@@ -18,14 +18,20 @@ import {
 
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebase';
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+} from 'firebase/firestore';
+import { db } from '../../firebase';
 
 // --- MOCK DATA ---
-const initialProducts = [
-  { id: 1, name: "Ceramic Vase", price: 45.00, stock: 12, category: "Decor" },
-  { id: 2, name: "Linen Tablecloth", price: 80.00, stock: 5, category: "Kitchen" },
-  { id: 3, name: "Wooden Bowl", price: 25.00, stock: 20, category: "Kitchen" },
-];
-
 const initialOrders = [
   { id: 101, customer: "Alice Brown", total: 125.00, status: "Pending", instruction: "" },
   { id: 102, customer: "Mark Wilson", total: 45.00, status: "Shipped", instruction: "Leave at door" },
@@ -45,26 +51,59 @@ const initialTestimonials = [
 
 // 1. PRODUCTS COMPONENT
 const ProductsManager = () => {
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
 
-  const handleDelete = (id) => {
-    setProducts(products.filter(p => p.id !== id));
+  React.useEffect(() => {
+    const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'))
+    const unsubscribe = onSnapshot(q, (snap) => {
+      setProducts(
+        snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })),
+      )
+      setLoading(false)
+    })
+
+    return unsubscribe
+  }, [])
+
+  const handleDelete = async (id) => {
+    await deleteDoc(doc(db, 'products', id))
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (currentProduct.id) {
-      setProducts(products.map(p => p.id === currentProduct.id ? currentProduct : p));
-    } else {
-      setProducts([...products, { ...currentProduct, id: Date.now() }]);
+
+    const payload = {
+      name: currentProduct.name || '',
+      price: Number(currentProduct.price || 0),
+      stock: Number(currentProduct.stock || 0),
+      category: currentProduct.category || '',
+      imageUrl: currentProduct.imageUrl || '',
+      description: currentProduct.description || '',
+      updatedAt: serverTimestamp(),
     }
+
+    if (currentProduct.id) {
+      await setDoc(doc(db, 'products', currentProduct.id), payload, { merge: true })
+    } else {
+      await addDoc(collection(db, 'products'), {
+        ...payload,
+        createdAt: serverTimestamp(),
+      })
+    }
+
     setIsEditing(false);
     setCurrentProduct(null);
   };
 
-  const openEdit = (product = { name: '', price: '', stock: '', category: '' }) => {
+  const openEdit = (
+    product = { name: '', price: '', stock: '', category: '', imageUrl: '', description: '' },
+  ) => {
     setCurrentProduct(product);
     setIsEditing(true);
   };
@@ -113,6 +152,19 @@ const ProductsManager = () => {
               value={currentProduct.category}
               onChange={(e) => setCurrentProduct({...currentProduct, category: e.target.value})}
             />
+            <input 
+              placeholder="Image URL (Cloudinary or any link)" 
+              className="bg-bg-main border border-border p-3 rounded-lg focus:outline-none focus:border-primary-button text-text-primary placeholder-text-muted md:col-span-2"
+              value={currentProduct.imageUrl}
+              onChange={(e) => setCurrentProduct({...currentProduct, imageUrl: e.target.value})}
+            />
+            <textarea 
+              placeholder="Description" 
+              rows="3"
+              className="w-full bg-bg-main border border-border p-3 rounded-lg focus:outline-none focus:border-primary-button text-text-primary placeholder-text-muted md:col-span-2"
+              value={currentProduct.description}
+              onChange={(e) => setCurrentProduct({...currentProduct, description: e.target.value})}
+            />
             <div className="md:col-span-2 flex justify-end gap-3 mt-2">
               <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 text-text-secondary hover:text-text-primary cursor-pointer">Cancel</button>
               <button type="submit" className="bg-primary-button text-white px-6 py-2 rounded-lg hover:bg-primary-hover cursor-pointer">Save Product</button>
@@ -133,7 +185,15 @@ const ProductsManager = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {products.map((product) => (
+            {loading ? (
+              <tr>
+                <td className="p-4 text-text-secondary" colSpan={5}>Loading...</td>
+              </tr>
+            ) : products.length === 0 ? (
+              <tr>
+                <td className="p-4 text-text-secondary" colSpan={5}>No products yet.</td>
+              </tr>
+            ) : products.map((product) => (
               <tr key={product.id} className="hover:bg-bg-main transition-colors">
                 <td className="p-4 font-medium text-text-primary">{product.name}</td>
                 <td className="p-4 text-text-secondary">{product.category}</td>
