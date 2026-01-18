@@ -6,6 +6,7 @@ import {
   ShoppingCart, 
   Image as ImageIcon, 
   MessageSquareQuote, // New Icon
+  Tag,
   Star,               // New Icon
   Plus, 
   Trash2, 
@@ -205,6 +206,135 @@ const ProductsManager = () => {
     </div>
   );
 };
+
+// 5. PROMO / COUPON SETTINGS
+const PromoManager = () => {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
+    enabled: true,
+    text: "",
+    code: "",
+    discountType: "percentage",
+    discountValue: 10,
+  })
+
+  React.useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'promo'), (snap) => {
+      const data = snap.data() || {}
+      setForm({
+        enabled: data.enabled !== false,
+        text: typeof data.text === 'string' ? data.text : "",
+        code: typeof data.code === 'string' ? data.code : "",
+        discountType: data.discountType === 'fixed' ? 'fixed' : 'percentage',
+        discountValue: Number(data.discountValue || 0),
+      })
+      setLoading(false)
+    })
+    return unsub
+  }, [])
+
+  const handleSave = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      await setDoc(
+        doc(db, 'settings', 'promo'),
+        {
+          enabled: !!form.enabled,
+          text: form.text || '',
+          code: (form.code || '').trim().toUpperCase(),
+          discountType: form.discountType === 'fixed' ? 'fixed' : 'percentage',
+          discountValue: Number(form.discountValue || 0),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-text-primary">Promo / Coupon</h2>
+      <div className="bg-bg-surface p-6 rounded-xl border border-border shadow-sm">
+        {loading ? (
+          <div className="text-text-secondary">Loading...</div>
+        ) : (
+          <form onSubmit={handleSave} className="space-y-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="font-bold text-text-primary">Promo Bar</div>
+                <div className="text-sm text-text-secondary">Show/hide the top announcement bar</div>
+              </div>
+              <label className="flex items-center gap-2 text-text-primary cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!!form.enabled}
+                  onChange={(e) => setForm((p) => ({ ...p, enabled: e.target.checked }))}
+                />
+                Enabled
+              </label>
+            </div>
+
+            <div>
+              <label className="block text-xs uppercase font-bold text-text-secondary mb-1">Promo Text</label>
+              <input
+                value={form.text}
+                onChange={(e) => setForm((p) => ({ ...p, text: e.target.value }))}
+                placeholder="10% Off On Your First Order. Use Code 'HAPPY'"
+                className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button outline-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs uppercase font-bold text-text-secondary mb-1">Coupon Code</label>
+                <input
+                  value={form.code}
+                  onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))}
+                  placeholder="HAPPY"
+                  className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs uppercase font-bold text-text-secondary mb-1">Discount Type</label>
+                <select
+                  value={form.discountType}
+                  onChange={(e) => setForm((p) => ({ ...p, discountType: e.target.value }))}
+                  className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button outline-none cursor-pointer"
+                >
+                  <option value="percentage">Percentage</option>
+                  <option value="fixed">Fixed</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs uppercase font-bold text-text-secondary mb-1">Discount Value</label>
+                <input
+                  type="number"
+                  value={form.discountValue}
+                  onChange={(e) => setForm((p) => ({ ...p, discountValue: e.target.value }))}
+                  className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={saving}
+                className="bg-primary-button text-white px-6 py-2 rounded-lg hover:bg-primary-hover cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {saving ? 'Saving...' : 'Save Promo'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
 
 // 2. ORDERS COMPONENT
 const OrdersManager = () => {
@@ -560,6 +690,7 @@ const AdminDashboard = () => {
       case 'orders': return <OrdersManager />;
       case 'hero': return <HeroManager />;
       case 'testimonials': return <TestimonialsManager />; // Added case
+      case 'promo': return <PromoManager />;
       default: return <ProductsManager />;
     }
   };
@@ -597,6 +728,12 @@ const AdminDashboard = () => {
             label="Testimonials" 
             active={activeTab === 'testimonials'} 
             onClick={() => setActiveTab('testimonials')} 
+          />
+          <SidebarItem 
+            icon={<Tag size={20} />} 
+            label="Promo" 
+            active={activeTab === 'promo'} 
+            onClick={() => setActiveTab('promo')} 
           />
         </nav>
 
