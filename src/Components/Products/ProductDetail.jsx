@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Minus, Plus, ShoppingBag, Heart } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
-import { productsData } from './productsData';
 import { useAuth } from '../../context/useAuth';
 import { db } from '../../firebase';
 import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
@@ -15,8 +14,35 @@ const ProductDetail = () => {
   const [wishlisted, setWishlisted] = useState(false);
   const [wishlistBusy, setWishlistBusy] = useState(false);
 
-  // Find the product matching the ID from the URL
-  const product = productsData.find(p => p.id === parseInt(id));
+  const [product, setProduct] = useState(null);
+  const [loadingProduct, setLoadingProduct] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!id) return
+      setLoadingProduct(true)
+      try {
+        const snap = await getDoc(doc(db, 'products', String(id)))
+        if (!snap.exists()) {
+          setProduct(null)
+          return
+        }
+        const data = snap.data()
+        setProduct({
+          id: snap.id,
+          name: data.name || '',
+          price: Number(data.price || 0),
+          description: data.description || '',
+          imageUrl: data.imageUrl || '',
+          category: data.category || '',
+          stock: Number(data.stock || 0),
+        })
+      } finally {
+        setLoadingProduct(false)
+      }
+    }
+    load()
+  }, [id])
 
   useEffect(() => {
     const load = async () => {
@@ -46,7 +72,7 @@ const ProductDetail = () => {
             productId,
             title: product.name,
             price: product.price,
-            image: product.image,
+            image: product.imageUrl,
             createdAt: serverTimestamp(),
           },
           { merge: true },
@@ -56,6 +82,14 @@ const ProductDetail = () => {
     } finally {
       setWishlistBusy(false)
     }
+  }
+
+  if (loadingProduct) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg-main text-text-primary">
+        Loading...
+      </div>
+    )
   }
 
   if (!product) {
@@ -81,7 +115,7 @@ const ProductDetail = () => {
           {/* Left: Product Image */}
           <div className="rounded-[2.5rem] overflow-hidden bg-bg-section shadow-sm aspect-[4/5]">
             <img 
-              src={product.image} 
+              src={product.imageUrl} 
               alt={product.name} 
               className="w-full h-full object-cover"
             />

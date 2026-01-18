@@ -4,8 +4,17 @@ import { Search, Filter, ChevronDown, X, SlidersHorizontal, Heart } from 'lucide
 import Navbar from '../Pages/Navbar';
 import { useAuth } from '../../context/useAuth';
 import { db } from '../../firebase';
-import { deleteDoc, doc, getDocs, collection, serverTimestamp, setDoc } from 'firebase/firestore';
-import { productsData } from './productsData';
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+} from 'firebase/firestore';
 
 const Shop = () => {
   // --- STATE ---
@@ -13,6 +22,9 @@ const Shop = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortOption, setSortOption] = useState("featured");
+
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
   const { user } = useAuth();
   const [wishlistIds, setWishlistIds] = useState(new Set());
@@ -30,6 +42,35 @@ const Shop = () => {
 
     loadWishlist()
   }, [user])
+
+  useEffect(() => {
+    const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'))
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        setProducts(
+          snap.docs.map((d) => {
+            const data = d.data()
+            return {
+              id: d.id,
+              name: data.name || '',
+              price: Number(data.price || 0),
+              category: data.category || 'Other',
+              imageUrl: data.imageUrl || '',
+              description: data.description || '',
+              stock: Number(data.stock || 0),
+            }
+          }),
+        )
+        setLoadingProducts(false)
+      },
+      () => {
+        setLoadingProducts(false)
+      },
+    )
+
+    return unsubscribe
+  }, [])
 
   const toggleWishlist = async (e, product) => {
     e.preventDefault()
@@ -53,7 +94,7 @@ const Shop = () => {
             productId,
             title: product.name,
             price: product.price,
-            image: product.image,
+            image: product.imageUrl,
             createdAt: serverTimestamp(),
           },
           { merge: true },
@@ -65,21 +106,22 @@ const Shop = () => {
     }
   }
 
-  const categories = ["All", ...new Set(productsData.map(p => p.category))];
+  const categories = ["All", ...new Set(products.map((p) => p.category))];
 
   const filteredProducts = useMemo(() => {
-    return productsData
+    return products
       .filter((product) => {
         const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
         return matchesSearch && matchesCategory;
       })
       .sort((a, b) => {
+        if (sortOption === "featured") return 0;
         if (sortOption === "price-low") return a.price - b.price;
         if (sortOption === "price-high") return b.price - a.price;
         return 0;
       });
-  }, [searchQuery, selectedCategory, sortOption]);
+  }, [products, searchQuery, selectedCategory, sortOption]);
 
   // Check if any filter is active
   const hasActiveFilters = searchQuery !== "" || selectedCategory !== "All";
@@ -198,12 +240,17 @@ const Shop = () => {
         </div>
 
         {/* --- PRODUCTS GRID --- */}
-        {filteredProducts.length > 0 ? (
+        {loadingProducts ? (
+          <div className="text-center py-20 bg-bg-surface rounded-[2.5rem] border border-dashed border-border">
+            <h3 className="text-2xl font-serif text-text-primary mb-2">Loading products...</h3>
+            <p className="text-text-secondary">Please wait</p>
+          </div>
+        ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
             {filteredProducts.map((product) => (
               <Link to={`/product/${product.id}`} key={product.id} className="group cursor-pointer">
                 <div className="aspect-[3/4] overflow-hidden rounded-[2.5rem] bg-bg-section mb-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative">
-                  <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+                  <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
                   <span className="absolute top-4 left-4 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold text-text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     {product.category}
                   </span>
