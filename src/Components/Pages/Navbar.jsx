@@ -7,6 +7,7 @@ import { FaInstagram } from "react-icons/fa6";
 import { FaWhatsapp } from "react-icons/fa6";
 import CartDrawer from "../Elements/CartDrawer";
 import { useAuth } from '../../context/useAuth';
+import { useCart } from '../../context/useCart';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase';
 
@@ -16,6 +17,7 @@ const Navbar = () => {
   const location = useLocation();
   const activeTab = location.pathname;
   const { user } = useAuth();
+  const { totalQuantity } = useCart();
 
   const [promoText, setPromoText] = useState("10% Off On Your First Order. Use Code 'HAPPY'");
 
@@ -179,7 +181,7 @@ const Navbar = () => {
               <FaCartShopping className="text-xl" />
               {/* Optional: Cart badge */}
               <span className="absolute -top-2 -right-2 bg-primary-button text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                3
+                {totalQuantity}
               </span>
             </button>
           </div>

@@ -24,6 +24,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -31,12 +32,6 @@ import {
   setDoc,
 } from 'firebase/firestore';
 import { db } from '../../firebase';
-
-// --- MOCK DATA ---
-const initialOrders = [
-  { id: 101, customer: "Alice Brown", total: 125.00, status: "Pending", instruction: "" },
-  { id: 102, customer: "Mark Wilson", total: 45.00, status: "Shipped", instruction: "Leave at door" },
-];
 
 // --- COMPONENTS ---
 
@@ -338,34 +333,73 @@ const PromoManager = () => {
 
 // 2. ORDERS COMPONENT
 const OrdersManager = () => {
-  const [orders, setOrders] = useState(initialOrders);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true)
 
-  const updateStatus = (id, newStatus) => {
-    setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o));
+  React.useEffect(() => {
+    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(50))
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setOrders(
+          snap.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+          })),
+        )
+        setLoading(false)
+      },
+      () => {
+        setLoading(false)
+      },
+    )
+    return unsub
+  }, [])
+
+  const updateStatus = async (id, newStatus) => {
+    await setDoc(
+      doc(db, 'orders', String(id)),
+      {
+        status: newStatus,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    )
   };
 
-  const updateInstruction = (id, newInstruction) => {
-    setOrders(orders.map(o => o.id === id ? { ...o, instruction: newInstruction } : o));
+  const updateInstruction = async (id, newInstruction) => {
+    await setDoc(
+      doc(db, 'orders', String(id)),
+      {
+        adminInstruction: newInstruction,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    )
   };
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-text-primary">Order Management</h2>
       <div className="grid gap-4">
-        {orders.map((order) => (
+        {loading ? (
+          <div className="text-text-secondary">Loading...</div>
+        ) : orders.length === 0 ? (
+          <div className="text-text-secondary">No orders yet.</div>
+        ) : orders.map((order) => (
           <div key={order.id} className="bg-bg-surface border border-border rounded-xl p-6 shadow-sm">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
               <div>
-                <h3 className="font-bold text-lg text-text-primary">Order #{order.id}</h3>
-                <p className="text-text-secondary text-sm">{order.customer}</p>
+                <h3 className="font-bold text-lg text-text-primary">Order #{order.orderNumber || `#${String(order.id).slice(0, 8).toUpperCase()}`}</h3>
+                <p className="text-text-secondary text-sm">{order.customerEmail || order.userId}</p>
               </div>
               <div className="mt-2 md:mt-0 flex items-center gap-3">
-                <span className="font-bold text-text-primary text-lg">${order.total}</span>
+                <span className="font-bold text-text-primary text-lg">Rs. {Number(order.total || 0)}</span>
                 <select 
-                  value={order.status}
+                  value={order.status || 'Pending'}
                   onChange={(e) => updateStatus(order.id, e.target.value)}
                   className={`px-3 py-1 rounded-full text-sm font-medium border border-border outline-none cursor-pointer
-                    ${order.status === 'Shipped' ? 'bg-success text-white' : 'bg-warning text-white'}`}
+                    ${(order.status || 'Pending') === 'Shipped' ? 'bg-success text-white' : 'bg-warning text-white'}`}
                 >
                   <option className="text-black" value="Pending">Pending</option>
                   <option className="text-black" value="Processing">Processing</option>
@@ -374,13 +408,31 @@ const OrdersManager = () => {
                 </select>
               </div>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="bg-bg-section p-4 rounded-lg">
+                <div className="text-xs uppercase font-bold text-text-muted mb-2">Shipping</div>
+                <div className="text-text-secondary text-sm">
+                  <div className="text-text-primary font-medium">{order.shippingAddress?.firstName || ''} {order.shippingAddress?.lastName || ''}</div>
+                  <div>{order.shippingAddress?.address || ''}</div>
+                  <div>{order.shippingAddress?.city || ''} {order.shippingAddress?.postalCode || ''}</div>
+                </div>
+              </div>
+              <div className="bg-bg-section p-4 rounded-lg">
+                <div className="text-xs uppercase font-bold text-text-muted mb-2">Payment</div>
+                <div className="text-text-secondary text-sm">
+                  <div><span className="font-bold">Method:</span> {order.paymentMethod || '—'}</div>
+                  <div><span className="font-bold">Status:</span> {order.paymentStatus || '—'}</div>
+                </div>
+              </div>
+            </div>
             
             <div className="bg-bg-section p-4 rounded-lg">
               <label className="block text-xs uppercase font-bold text-text-muted mb-2">Admin Instructions / Notes</label>
               <div className="flex gap-2">
                 <input 
                   type="text" 
-                  value={order.instruction}
+                  value={order.adminInstruction || ''}
                   onChange={(e) => updateInstruction(order.id, e.target.value)}
                   placeholder="Add note for customer..."
                   className="flex-1 bg-bg-main border-none rounded-md px-3 py-2 text-text-primary focus:ring-1 focus:ring-accent outline-none"

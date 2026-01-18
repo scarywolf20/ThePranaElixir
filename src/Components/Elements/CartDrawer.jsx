@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { X, Plus, Minus, ShoppingBag, Trash2, ArrowRight, Tag, Check } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useCart } from '../../context/useCart'
 
 const CartDrawer = ({ isOpen, onClose }) => {
   const [couponCode, setCouponCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [couponError, setCouponError] = useState('')
   const [showCouponInput, setShowCouponInput] = useState(false)
+  const { items: cartItems, setItemQuantity, removeItem: removeCartItem } = useCart()
 
   // Mock coupon codes (in real app, validate from backend)
   const validCoupons = {
@@ -14,30 +16,6 @@ const CartDrawer = ({ isOpen, onClose }) => {
     'SAVE20': { discount: 20, type: 'percentage' },
     'FLAT100': { discount: 100, type: 'fixed' }
   }
-
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 1,
-      name: 'Ceramic Vase',
-      price: 1200.00,
-      quantity: 1,
-      image: 'https://images.unsplash.com/photo-1612196808214-b7e239e5f6b7?w=200&h=200&fit=crop'
-    },
-    {
-      id: 2,
-      name: 'Scented Soy Candle',
-      price: 450.00,
-      quantity: 2,
-      image: 'https://images.unsplash.com/photo-1600857062241-98e5dba7f214?w=200&h=200&fit=crop'
-    },
-    {
-      id: 3,
-      name: 'Linen Napkins (Set of 4)',
-      price: 850.00,
-      quantity: 1,
-      image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=200&h=200&fit=crop'
-    }
-  ])
 
   // Prevent body scroll when drawer is open
   useEffect(() => {
@@ -52,17 +30,13 @@ const CartDrawer = ({ isOpen, onClose }) => {
   }, [isOpen])
 
   const updateQuantity = (id, change) => {
-    setCartItems(items =>
-      items.map(item =>
-        item.id === id
-          ? { ...item, quantity: Math.max(1, item.quantity + change) }
-          : item
-      )
-    )
+    const current = cartItems.find((it) => String(it.id) === String(id))
+    const nextQty = Math.max(1, Number(current?.quantity || 1) + change)
+    setItemQuantity(String(id), nextQty)
   }
 
   const removeItem = (id) => {
-    setCartItems(items => items.filter(item => item.id !== id))
+    removeCartItem(String(id))
   }
 
   const handleApplyCoupon = () => {
@@ -149,14 +123,14 @@ const CartDrawer = ({ isOpen, onClose }) => {
                   <div className="w-24 h-28 bg-bg-section rounded-xl overflow-hidden shrink-0 border border-border">
                     <img
                         src={item.image}
-                        alt={item.name}
+                        alt={item.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   </div>
                   
                   <div className="flex-1 flex flex-col justify-between py-1">
                     <div>
-                        <h3 className="font-serif text-text-primary text-lg leading-tight mb-1">{item.name}</h3>
+                        <h3 className="font-serif text-text-primary text-lg leading-tight mb-1">{item.title}</h3>
                         <p className="text-text-secondary text-sm">Rs. {item.price.toFixed(2)}</p>
                     </div>
 

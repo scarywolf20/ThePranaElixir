@@ -1,15 +1,43 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, CreditCard, Truck, MapPin, CheckCircle, Tag, Check, X } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
+import { useAuth } from '../../context/useAuth';
+import { useCart } from '../../context/useCart';
+import {
+  addDoc,
+  collection,
+  doc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+} from 'firebase/firestore';
+import { db } from '../../firebase';
 
 const Checkout = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const { items: cartItems, subtotal: cartSubtotal, clearCart } = useCart();
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
   const [showCouponInput, setShowCouponInput] = useState(false);
+
+  const [addresses, setAddresses] = useState([])
+  const [selectedAddressId, setSelectedAddressId] = useState('')
+
+  const [shippingForm, setShippingForm] = useState({
+    firstName: '',
+    lastName: '',
+    address: '',
+    city: '',
+    postalCode: '',
+  })
+
+  const [placing, setPlacing] = useState(false)
 
   // Mock coupon codes (in real app, validate from backend)
   const validCoupons = {
@@ -18,8 +46,6 @@ const Checkout = () => {
     'FLAT100': { discount: 100, type: 'fixed' }
   };
 
-  // Mock Cart Data (In real app, get this from useCart context)
-  const cartSubtotal = 1650.00;
   const shipping = 0; // Free shipping
   
   // Calculate discount
@@ -33,6 +59,43 @@ const Checkout = () => {
   }
 
   const finalTotal = cartSubtotal - discount + shipping;
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/customer/login')
+    }
+  }, [loading, user, navigate])
+
+  useEffect(() => {
+    const loadAddresses = async () => {
+      if (!user) return
+      const snap = await getDocs(
+        query(collection(db, 'users', user.uid, 'addresses'), orderBy('createdAt', 'desc')),
+      )
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      setAddresses(list)
+      if (list.length > 0) {
+        setSelectedAddressId(list[0].id)
+      }
+    }
+    loadAddresses()
+  }, [user])
+
+  useEffect(() => {
+    const selected = addresses.find((a) => a.id === selectedAddressId)
+    if (selected?.text) {
+      setShippingForm((prev) => ({
+        ...prev,
+        address: selected.text,
+      }))
+    }
+  }, [addresses, selectedAddressId])
+
+  const estimatedDelivery = useMemo(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 4)
+    return d.toLocaleDateString()
+  }, [])
 
   const handleApplyCoupon = () => {
     const code = couponCode.trim().toUpperCase();
@@ -53,12 +116,55 @@ const Checkout = () => {
     setCouponError('');
   };
 
-  const handlePlaceOrder = (e) => {
+  const handlePlaceOrder = async (e) => {
     e.preventDefault();
-    // Simulate Payment Processing...
-    setTimeout(() => {
-      navigate('/order-success');
-    }, 1500);
+    if (!user) return
+    if (cartItems.length === 0) return
+
+    setPlacing(true)
+    try {
+      const payloadItems = cartItems.map((it) => ({
+        productId: String(it.productId || it.id),
+        title: it.title || '',
+        price: Number(it.price || 0),
+        quantity: Number(it.quantity || 0),
+        image: it.image || '',
+      }))
+
+      const shippingAddress = {
+        firstName: shippingForm.firstName.trim(),
+        lastName: shippingForm.lastName.trim(),
+        address: shippingForm.address.trim(),
+        city: shippingForm.city.trim(),
+        postalCode: shippingForm.postalCode.trim(),
+        savedAddressId: selectedAddressId || null,
+      }
+
+      const ref = await addDoc(collection(db, 'orders'), {
+        userId: user.uid,
+        customerEmail: user.email || '',
+        items: payloadItems,
+        subtotal: Number(cartSubtotal || 0),
+        discount: Number(discount || 0),
+        shipping: Number(shipping || 0),
+        total: Number(finalTotal || 0),
+        paymentMethod,
+        paymentStatus: paymentMethod === 'cod' ? 'pending' : 'paid',
+        status: 'Pending',
+        adminInstruction: '',
+        shippingAddress,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+
+      const orderNumber = `ORD-${ref.id.slice(0, 8).toUpperCase()}`
+      await setDoc(doc(db, 'orders', ref.id), { orderNumber }, { merge: true })
+
+      await clearCart()
+      navigate('/order-success', { state: { orderId: ref.id, estimatedDelivery } })
+    } finally {
+      setPlacing(false)
+    }
   };
 
   return (
@@ -82,26 +188,69 @@ const Checkout = () => {
                 <h2 className="text-xl font-serif text-text-primary">Shipping Information</h2>
               </div>
               
+              {addresses.length > 0 ? (
+                <div className="mb-6">
+                  <label className="text-xs font-bold uppercase text-text-secondary">Saved Address</label>
+                  <select
+                    value={selectedAddressId}
+                    onChange={(e) => setSelectedAddressId(e.target.value)}
+                    className="mt-2 w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none"
+                  >
+                    {addresses.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.type || 'Address'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase text-text-secondary">First Name</label>
-                  <input required className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none" />
+                  <input
+                    required
+                    value={shippingForm.firstName}
+                    onChange={(e) => setShippingForm((p) => ({ ...p, firstName: e.target.value }))}
+                    className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none"
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase text-text-secondary">Last Name</label>
-                  <input required className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none" />
+                  <input
+                    required
+                    value={shippingForm.lastName}
+                    onChange={(e) => setShippingForm((p) => ({ ...p, lastName: e.target.value }))}
+                    className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none"
+                  />
                 </div>
                 <div className="md:col-span-2 space-y-2">
                   <label className="text-xs font-bold uppercase text-text-secondary">Address</label>
-                  <input required className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none" placeholder="Street address, Apt, Suite" />
+                  <input
+                    required
+                    value={shippingForm.address}
+                    onChange={(e) => setShippingForm((p) => ({ ...p, address: e.target.value }))}
+                    className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none"
+                    placeholder="Street address, Apt, Suite"
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase text-text-secondary">City</label>
-                  <input required className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none" />
+                  <input
+                    required
+                    value={shippingForm.city}
+                    onChange={(e) => setShippingForm((p) => ({ ...p, city: e.target.value }))}
+                    className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none"
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase text-text-secondary">Postal Code</label>
-                  <input required className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none" />
+                  <input
+                    required
+                    value={shippingForm.postalCode}
+                    onChange={(e) => setShippingForm((p) => ({ ...p, postalCode: e.target.value }))}
+                    className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none"
+                  />
                 </div>
               </div>
             </div>
@@ -170,28 +319,22 @@ const Checkout = () => {
               <h3 className="text-xl font-serif text-text-primary mb-6">Order Summary</h3>
               
               <div className="space-y-4 mb-6">
-                {/* Mock Item 1 */}
-                <div className="flex gap-4 items-center">
-                  <div className="w-16 h-16 bg-bg-section rounded-lg overflow-hidden border border-border">
-                     <img src="https://images.unsplash.com/photo-1612196808214-b7e239e5f6b7?w=100&h=100&fit=crop" className="w-full h-full object-cover"/>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-text-primary">Ceramic Vase</h4>
-                    <p className="text-sm text-text-secondary">Qty: 1</p>
-                  </div>
-                  <span className="font-bold text-text-primary">Rs. 1200</span>
-                </div>
-                 {/* Mock Item 2 */}
-                 <div className="flex gap-4 items-center">
-                  <div className="w-16 h-16 bg-bg-section rounded-lg overflow-hidden border border-border">
-                     <img src="https://images.unsplash.com/photo-1600857062241-98e5dba7f214?w=100&h=100&fit=crop" className="w-full h-full object-cover"/>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-text-primary">Scented Candle</h4>
-                    <p className="text-sm text-text-secondary">Qty: 1</p>
-                  </div>
-                  <span className="font-bold text-text-primary">Rs. 450</span>
-                </div>
+                {cartItems.length === 0 ? (
+                  <div className="text-text-secondary">Your cart is empty.</div>
+                ) : (
+                  cartItems.map((item) => (
+                    <div key={item.id} className="flex gap-4 items-center">
+                      <div className="w-16 h-16 bg-bg-section rounded-lg overflow-hidden border border-border">
+                        <img src={item.image} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-text-primary">{item.title}</h4>
+                        <p className="text-sm text-text-secondary">Qty: {item.quantity}</p>
+                      </div>
+                      <span className="font-bold text-text-primary">Rs. {Number(item.price || 0) * Number(item.quantity || 0)}</span>
+                    </div>
+                  ))
+                )}
               </div>
 
               {/* Coupon Code Section */}
@@ -293,7 +436,7 @@ const Checkout = () => {
 
               <button type="submit" className="w-full bg-primary-button text-white py-4 rounded-xl font-medium hover:bg-primary-hover transition-all mt-6 shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer">
                 <ShieldCheck size={20} />
-                Pay Rs. {finalTotal}
+                {placing ? 'Processing...' : `Pay Rs. ${finalTotal}`}
               </button>
 
               <div className="flex items-center justify-center gap-2 mt-4 text-xs text-text-muted">

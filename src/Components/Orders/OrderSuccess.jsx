@@ -1,9 +1,26 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Check, ArrowRight, Printer } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 const OrderSuccess = () => {
+  const location = useLocation()
+  const { orderId, estimatedDelivery } = location.state || {}
+  const [orderNumber, setOrderNumber] = useState('')
+
+  useEffect(() => {
+    const load = async () => {
+      if (!orderId) return
+      const snap = await getDoc(doc(db, 'orders', orderId))
+      if (!snap.exists()) return
+      const data = snap.data()
+      setOrderNumber(data?.orderNumber || `ORD-${String(orderId).slice(0, 8).toUpperCase()}`)
+    }
+    load()
+  }, [orderId])
+
   return (
     <div className="min-h-screen bg-bg-main flex flex-col">
       <Navbar />
@@ -23,11 +40,11 @@ const OrderSuccess = () => {
           <div className="bg-bg-main p-6 rounded-xl border border-border mb-8 text-left">
             <div className="flex justify-between items-center mb-4 border-b border-border pb-4">
               <span className="text-text-secondary">Order Number</span>
-              <span className="font-bold text-text-primary">#ORD-2026-8821</span>
+              <span className="font-bold text-text-primary">#{orderNumber || '—'}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-text-secondary">Estimated Delivery</span>
-              <span className="font-bold text-text-primary">Jan 22, 2026</span>
+              <span className="font-bold text-text-primary">{estimatedDelivery || '—'}</span>
             </div>
           </div>
 

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Minus, Plus, ShoppingBag, Heart } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
 import { useAuth } from '../../context/useAuth';
+import { useCart } from '../../context/useCart';
 import { db } from '../../firebase';
 import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 
@@ -11,6 +12,7 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const { user } = useAuth();
+  const { addItem } = useCart();
   const [wishlisted, setWishlisted] = useState(false);
   const [wishlistBusy, setWishlistBusy] = useState(false);
 
@@ -96,6 +98,15 @@ const ProductDetail = () => {
     return <div className="min-h-screen flex items-center justify-center bg-bg-main text-text-primary">Product not found</div>;
   }
 
+  const handleBuyNow = async () => {
+    if (!user) {
+      navigate('/customer/login')
+      return
+    }
+    await addItem(product, quantity)
+    navigate('/checkout')
+  }
+
   return (
     <div className="min-h-screen bg-bg-main">
       <Navbar />
@@ -162,7 +173,10 @@ const ProductDetail = () => {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <button className="flex-1 bg-primary-button text-white py-4 px-8 rounded-full font-medium hover:bg-primary-hover transition-colors shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2">
+              <button
+                onClick={handleBuyNow}
+                className="flex-1 bg-primary-button text-white py-4 px-8 rounded-full font-medium hover:bg-primary-hover transition-colors shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2"
+              >
                 <ShoppingBag size={20} />
                 Buy Now
               </button>

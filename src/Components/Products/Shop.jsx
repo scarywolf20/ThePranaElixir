@@ -309,7 +309,13 @@ const Shop = () => {
               {filteredProducts.map((product) => (
                 <Link to={`/product/${product.id}`} key={product.id} className="group cursor-pointer">
                   <div className="aspect-[3/4] overflow-hidden rounded-[2.5rem] bg-bg-section mb-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative">
-                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                    />
                     <span className="absolute top-4 left-4 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold text-text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       {product.category}
                     </span>
@@ -341,6 +347,24 @@ const Shop = () => {
                 </Link>
               ))}
             </div>
+
+            {loadingMore ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12 mt-8">
+                {Array.from({ length: 3 }).map((_, idx) => (
+                  <div key={idx} className="group">
+                    <div className="aspect-[3/4] overflow-hidden rounded-[2.5rem] bg-bg-section mb-6 shadow-sm relative animate-pulse">
+                      <div className="w-full h-full bg-bg-main" />
+                      <div className="absolute top-4 left-4 h-6 w-20 rounded-full bg-white/70" />
+                      <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/70" />
+                    </div>
+                    <div className="text-center space-y-2 animate-pulse">
+                      <div className="h-6 w-2/3 mx-auto rounded bg-bg-section" />
+                      <div className="h-4 w-1/3 mx-auto rounded bg-bg-section" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
 
             {hasMoreProducts && !hasActiveFilters ? (
               <div className="flex justify-center mt-12">
