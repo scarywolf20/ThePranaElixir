@@ -9,9 +9,10 @@ import {
   deleteDoc,
   doc,
   getDocs,
-  onSnapshot,
   orderBy,
+  limit,
   query,
+  startAfter,
   serverTimestamp,
   setDoc,
 } from 'firebase/firestore';
@@ -25,6 +26,11 @@ const Shop = () => {
 
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreProducts, setHasMoreProducts] = useState(true);
+  const [lastProductDoc, setLastProductDoc] = useState(null);
+
+  const PAGE_SIZE = 12;
 
   const { user } = useAuth();
   const [wishlistIds, setWishlistIds] = useState(new Set());
@@ -43,33 +49,57 @@ const Shop = () => {
     loadWishlist()
   }, [user])
 
-  useEffect(() => {
-    const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'))
-    const unsubscribe = onSnapshot(
-      q,
-      (snap) => {
-        setProducts(
-          snap.docs.map((d) => {
-            const data = d.data()
-            return {
-              id: d.id,
-              name: data.name || '',
-              price: Number(data.price || 0),
-              category: data.category || 'Other',
-              imageUrl: data.imageUrl || '',
-              description: data.description || '',
-              stock: Number(data.stock || 0),
-            }
-          }),
-        )
-        setLoadingProducts(false)
-      },
-      () => {
-        setLoadingProducts(false)
-      },
-    )
+  const mapProductDoc = (d) => {
+    const data = d.data()
+    return {
+      id: d.id,
+      name: data.name || '',
+      price: Number(data.price || 0),
+      category: data.category || 'Other',
+      imageUrl: data.imageUrl || '',
+      description: data.description || '',
+      stock: Number(data.stock || 0),
+    }
+  }
 
-    return unsubscribe
+  const loadMore = async () => {
+    if (loadingMore || !hasMoreProducts || !lastProductDoc) return
+    setLoadingMore(true)
+    try {
+      const q = query(
+        collection(db, 'products'),
+        orderBy('createdAt', 'desc'),
+        startAfter(lastProductDoc),
+        limit(PAGE_SIZE),
+      )
+      const snap = await getDocs(q)
+      setProducts((prev) => [...prev, ...snap.docs.map(mapProductDoc)])
+      setLastProductDoc(snap.docs[snap.docs.length - 1] || lastProductDoc)
+      setHasMoreProducts(snap.size === PAGE_SIZE)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
+  useEffect(() => {
+    const loadFirstPage = async () => {
+      setLoadingProducts(true)
+      try {
+        const q = query(
+          collection(db, 'products'),
+          orderBy('createdAt', 'desc'),
+          limit(PAGE_SIZE),
+        )
+        const snap = await getDocs(q)
+        setProducts(snap.docs.map(mapProductDoc))
+        setLastProductDoc(snap.docs[snap.docs.length - 1] || null)
+        setHasMoreProducts(snap.size === PAGE_SIZE)
+      } finally {
+        setLoadingProducts(false)
+      }
+    }
+
+    loadFirstPage()
   }, [])
 
   const toggleWishlist = async (e, product) => {
@@ -246,42 +276,56 @@ const Shop = () => {
             <p className="text-text-secondary">Please wait</p>
           </div>
         ) : filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
-            {filteredProducts.map((product) => (
-              <Link to={`/product/${product.id}`} key={product.id} className="group cursor-pointer">
-                <div className="aspect-[3/4] overflow-hidden rounded-[2.5rem] bg-bg-section mb-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative">
-                  <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
-                  <span className="absolute top-4 left-4 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold text-text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    {product.category}
-                  </span>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
+              {filteredProducts.map((product) => (
+                <Link to={`/product/${product.id}`} key={product.id} className="group cursor-pointer">
+                  <div className="aspect-[3/4] overflow-hidden rounded-[2.5rem] bg-bg-section mb-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative">
+                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+                    <span className="absolute top-4 left-4 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold text-text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      {product.category}
+                    </span>
 
-                  <button
-                    onClick={(e) => toggleWishlist(e, product)}
-                    disabled={!user || wishlistBusyId === String(product.id)}
-                    className={`absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm border transition-colors cursor-pointer
-                      ${wishlistIds.has(String(product.id))
-                        ? 'bg-primary-button text-white border-primary-button'
-                        : 'bg-white/80 text-text-primary border-white/60 hover:bg-white'
-                      }
-                      ${!user ? 'opacity-60 cursor-not-allowed' : ''}
-                    `}
-                    aria-label="Toggle wishlist"
-                    title={!user ? 'Login to use wishlist' : 'Wishlist'}
-                  >
-                    <Heart size={18} fill={wishlistIds.has(String(product.id)) ? 'currentColor' : 'none'} />
-                  </button>
-                </div>
-                <div className="text-center space-y-2">
-                  <h3 className="text-xl font-serif tracking-wide text-text-primary uppercase group-hover:text-primary-button transition-colors">
-                    {product.name}
-                  </h3>
-                  <p className="text-text-secondary italic font-light">
-                    Rs.{product.price}/-
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
+                    <button
+                      onClick={(e) => toggleWishlist(e, product)}
+                      disabled={!user || wishlistBusyId === String(product.id)}
+                      className={`absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm border transition-colors cursor-pointer
+                        ${wishlistIds.has(String(product.id))
+                          ? 'bg-primary-button text-white border-primary-button'
+                          : 'bg-white/80 text-text-primary border-white/60 hover:bg-white'
+                        }
+                        ${!user ? 'opacity-60 cursor-not-allowed' : ''}
+                      `}
+                      aria-label="Toggle wishlist"
+                      title={!user ? 'Login to use wishlist' : 'Wishlist'}
+                    >
+                      <Heart size={18} fill={wishlistIds.has(String(product.id)) ? 'currentColor' : 'none'} />
+                    </button>
+                  </div>
+                  <div className="text-center space-y-2">
+                    <h3 className="text-xl font-serif tracking-wide text-text-primary uppercase group-hover:text-primary-button transition-colors">
+                      {product.name}
+                    </h3>
+                    <p className="text-text-secondary italic font-light">
+                      Rs.{product.price}/-
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {hasMoreProducts && !hasActiveFilters ? (
+              <div className="flex justify-center mt-12">
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="bg-text-primary text-bg-surface px-8 py-3 rounded-full text-xs uppercase tracking-widest font-bold hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {loadingMore ? 'Loading...' : 'Load more'}
+                </button>
+              </div>
+            ) : null}
+          </>
         ) : (
           <div className="text-center py-20 bg-bg-surface rounded-[2.5rem] border border-dashed border-border">
             <h3 className="text-2xl font-serif text-text-primary mb-2">No products found</h3>
