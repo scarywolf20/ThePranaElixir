@@ -1,16 +1,62 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Minus, Plus, ShoppingBag, Heart } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
-import { productsData } from './Shop'; // Import the data to find the product
+import { productsData } from './productsData';
+import { useAuth } from '../../context/useAuth';
+import { db } from '../../firebase';
+import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
+  const { user } = useAuth();
+  const [wishlisted, setWishlisted] = useState(false);
+  const [wishlistBusy, setWishlistBusy] = useState(false);
 
   // Find the product matching the ID from the URL
   const product = productsData.find(p => p.id === parseInt(id));
+
+  useEffect(() => {
+    const load = async () => {
+      if (!user || !product) {
+        setWishlisted(false)
+        return
+      }
+      const productId = String(product.id)
+      const snap = await getDoc(doc(db, 'users', user.uid, 'wishlist', productId))
+      setWishlisted(snap.exists())
+    }
+    load()
+  }, [user, product])
+
+  const toggleWishlist = async () => {
+    if (!user || !product) return
+    const productId = String(product.id)
+    setWishlistBusy(true)
+    try {
+      if (wishlisted) {
+        await deleteDoc(doc(db, 'users', user.uid, 'wishlist', productId))
+        setWishlisted(false)
+      } else {
+        await setDoc(
+          doc(db, 'users', user.uid, 'wishlist', productId),
+          {
+            productId,
+            title: product.name,
+            price: product.price,
+            image: product.image,
+            createdAt: serverTimestamp(),
+          },
+          { merge: true },
+        )
+        setWishlisted(true)
+      }
+    } finally {
+      setWishlistBusy(false)
+    }
+  }
 
   if (!product) {
     return <div className="min-h-screen flex items-center justify-center bg-bg-main text-text-primary">Product not found</div>;
@@ -86,9 +132,19 @@ const ProductDetail = () => {
                 <ShoppingBag size={20} />
                 Buy Now
               </button>
-              <button className="flex-1 border border-text-primary text-text-primary py-4 px-8 rounded-full font-medium hover:bg-text-primary hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-2">
-                <Heart size={20} />
-                Add to Wishlist
+              <button
+                onClick={toggleWishlist}
+                disabled={!user || wishlistBusy}
+                className={`flex-1 border py-4 px-8 rounded-full font-medium transition-colors flex items-center justify-center gap-2
+                  ${wishlisted
+                    ? 'bg-primary-button border-primary-button text-white hover:bg-primary-hover'
+                    : 'border-text-primary text-text-primary hover:bg-text-primary hover:text-white'
+                  }
+                  ${!user ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
+                `}
+              >
+                <Heart size={20} fill={wishlisted ? 'currentColor' : 'none'} />
+                {wishlisted ? 'Wishlisted' : 'Add to Wishlist'}
               </button>
             </div>
 

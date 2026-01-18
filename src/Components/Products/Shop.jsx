@@ -1,59 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Filter, ChevronDown, X, SlidersHorizontal } from 'lucide-react';
+import { Search, Filter, ChevronDown, X, SlidersHorizontal, Heart } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
-
-// Shared Mock Data
-export const productsData = [
-  { 
-    id: 1, 
-    name: "POSTCARDS", 
-    price: 700, 
-    category: "Stationery",
-    image: "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?q=80&w=1000&auto=format&fit=crop", 
-    description: "Handcrafted paper postcards for your loved ones."
-  },
-  { 
-    id: 2, 
-    name: "BATH ACCESSORIES", 
-    price: 295, 
-    category: "Essentials",
-    image: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=1000&auto=format&fit=crop", 
-    description: "Leather and sustainable materials for your daily carry."
-  },
-  { 
-    id: 3, 
-    name: "GENTLE HABITS SOAPS", 
-    price: 250, 
-    category: "Bath & Body",
-    image: "https://images.unsplash.com/photo-1600857062241-98e5dba7f214?q=80&w=1000&auto=format&fit=crop", 
-    description: "Organic, scented soaps for a relaxing bath experience."
-  },
-  { 
-    id: 4, 
-    name: "CERAMIC VASE", 
-    price: 1200, 
-    category: "Home Decor",
-    image: "https://images.unsplash.com/photo-1612196808214-b7e239e5f6b7?q=80&w=1000&auto=format&fit=crop", 
-    description: "Minimalist ceramic vase for modern homes."
-  },
-  { 
-    id: 5, 
-    name: "LINEN TABLECLOTH", 
-    price: 1500, 
-    category: "Home Decor",
-    image: "https://images.unsplash.com/photo-1593936660460-7a8742b0c363?q=80&w=1000&auto=format&fit=crop", 
-    description: "Pure linen tablecloth in earthy tones."
-  },
-  { 
-    id: 6, 
-    name: "SCENTED CANDLE", 
-    price: 450, 
-    category: "Home Decor",
-    image: "https://images.unsplash.com/photo-1602523961358-f9f03dd557db?q=80&w=1000&auto=format&fit=crop", 
-    description: "Soy wax candle with lavender and sage."
-  },
-];
+import { useAuth } from '../../context/useAuth';
+import { db } from '../../firebase';
+import { deleteDoc, doc, getDocs, collection, serverTimestamp, setDoc } from 'firebase/firestore';
+import { productsData } from './productsData';
 
 const Shop = () => {
   // --- STATE ---
@@ -61,6 +13,57 @@ const Shop = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortOption, setSortOption] = useState("featured");
+
+  const { user } = useAuth();
+  const [wishlistIds, setWishlistIds] = useState(new Set());
+  const [wishlistBusyId, setWishlistBusyId] = useState(null);
+
+  useEffect(() => {
+    const loadWishlist = async () => {
+      if (!user) {
+        setWishlistIds(new Set())
+        return
+      }
+      const snap = await getDocs(collection(db, 'users', user.uid, 'wishlist'))
+      setWishlistIds(new Set(snap.docs.map((d) => d.id)))
+    }
+
+    loadWishlist()
+  }, [user])
+
+  const toggleWishlist = async (e, product) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!user) return
+
+    const productId = String(product.id)
+    setWishlistBusyId(productId)
+    try {
+      if (wishlistIds.has(productId)) {
+        await deleteDoc(doc(db, 'users', user.uid, 'wishlist', productId))
+        setWishlistIds((prev) => {
+          const next = new Set(prev)
+          next.delete(productId)
+          return next
+        })
+      } else {
+        await setDoc(
+          doc(db, 'users', user.uid, 'wishlist', productId),
+          {
+            productId,
+            title: product.name,
+            price: product.price,
+            image: product.image,
+            createdAt: serverTimestamp(),
+          },
+          { merge: true },
+        )
+        setWishlistIds((prev) => new Set(prev).add(productId))
+      }
+    } finally {
+      setWishlistBusyId(null)
+    }
+  }
 
   const categories = ["All", ...new Set(productsData.map(p => p.category))];
 
@@ -204,6 +207,22 @@ const Shop = () => {
                   <span className="absolute top-4 left-4 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold text-text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     {product.category}
                   </span>
+
+                  <button
+                    onClick={(e) => toggleWishlist(e, product)}
+                    disabled={!user || wishlistBusyId === String(product.id)}
+                    className={`absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm border transition-colors cursor-pointer
+                      ${wishlistIds.has(String(product.id))
+                        ? 'bg-primary-button text-white border-primary-button'
+                        : 'bg-white/80 text-text-primary border-white/60 hover:bg-white'
+                      }
+                      ${!user ? 'opacity-60 cursor-not-allowed' : ''}
+                    `}
+                    aria-label="Toggle wishlist"
+                    title={!user ? 'Login to use wishlist' : 'Wishlist'}
+                  >
+                    <Heart size={18} fill={wishlistIds.has(String(product.id)) ? 'currentColor' : 'none'} />
+                  </button>
                 </div>
                 <div className="text-center space-y-2">
                   <h3 className="text-xl font-serif tracking-wide text-text-primary uppercase group-hover:text-primary-button transition-colors">
