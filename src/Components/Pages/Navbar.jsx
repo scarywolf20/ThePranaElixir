@@ -139,7 +139,7 @@ const Navbar = () => {
                       ].map((item) => (
                         <a 
                           key={item} 
-                          href="#" 
+                          href="/shop" 
                           className="block px-8 py-2.5 text-text-primary lowercase text-base font-light hover:bg-bg-section hover:text-primary-button transition-colors"
                         >
                           {item}
