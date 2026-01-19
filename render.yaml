@@ -1,0 +1,22 @@
+services:
+  # SPA routing: fallback to index.html for any non-static path
+  - type: web
+    name: web
+    env: static
+    buildCommand: npm run build
+    staticPublishPath: dist
+    routes:
+      - route: /refund-policy
+        # Fallback to index.html so React Router handles it
+      - route: /privacy-policy
+      - route: /terms-and-conditions
+      - route: /shipping-policy
+      - route: /shop
+      - route: /shop/*
+      - route: /product/*
+      - route: /customer/*
+      - route: /admin/*
+      - route: /checkout
+      - route: /order-success
+      # Catch-all: any other path goes to index.html
+      - route: /(.*)
