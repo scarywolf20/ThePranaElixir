@@ -42,6 +42,8 @@ const ProductsManager = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
   const [saveError, setSaveError] = useState('')
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [uploadError, setUploadError] = useState('')
 
   React.useEffect(() => {
     const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'))
@@ -99,10 +101,55 @@ const ProductsManager = () => {
     setCurrentProduct(null);
   };
 
+  const uploadToCloudinary = async (file) => {
+    if (!file) return
+
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+    if (!cloudName || !uploadPreset) {
+      setUploadError('Missing Cloudinary env vars: VITE_CLOUDINARY_CLOUD_NAME / VITE_CLOUDINARY_UPLOAD_PRESET')
+      return
+    }
+
+    setUploadError('')
+    setUploadingImage(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('upload_preset', uploadPreset)
+
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data?.error?.message || 'Cloudinary upload failed')
+      }
+
+      const url = data?.secure_url || data?.url
+      if (!url) {
+        throw new Error('Cloudinary did not return an image URL')
+      }
+
+      setCurrentProduct((prev) => ({
+        ...(prev || {}),
+        imageUrl: url,
+      }))
+    } catch (e) {
+      setUploadError(e?.message || 'Cloudinary upload failed')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   const openEdit = (
     product = { name: '', price: '', stock: '', category: '', imageUrl: '', description: '', isBestSeller: false },
   ) => {
     setSaveError('')
+    setUploadError('')
+    setUploadingImage(false)
     setCurrentProduct(product);
     setIsEditing(true);
   };
@@ -157,6 +204,20 @@ const ProductsManager = () => {
               value={currentProduct.imageUrl}
               onChange={(e) => setCurrentProduct({...currentProduct, imageUrl: e.target.value})}
             />
+
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+              <input
+                type="file"
+                accept="image/*"
+                disabled={uploadingImage}
+                onChange={(e) => uploadToCloudinary(e.target.files?.[0] || null)}
+                className="bg-bg-main border border-border p-3 rounded-lg text-text-primary placeholder-text-muted cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+              />
+              <div className="md:col-span-2 text-text-secondary text-sm">
+                {uploadingImage ? 'Uploading image...' : 'Choose an image to upload to Cloudinary (it will auto-fill Image URL)'}
+              </div>
+              {uploadError ? <div className="md:col-span-3 text-danger text-sm">{uploadError}</div> : null}
+            </div>
             <textarea 
               placeholder="Description" 
               rows="3"
