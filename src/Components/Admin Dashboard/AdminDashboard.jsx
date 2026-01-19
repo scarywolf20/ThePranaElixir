@@ -576,6 +576,8 @@ const HeroManager = () => {
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(null)
+  const [uploadingHeroImage, setUploadingHeroImage] = useState(false)
+  const [heroUploadError, setHeroUploadError] = useState('')
 
   React.useEffect(() => {
     const q = query(collection(db, 'hero_slides'), orderBy('createdAt', 'desc'))
@@ -591,7 +593,52 @@ const HeroManager = () => {
     return unsubscribe
   }, [])
 
+  const uploadHeroToCloudinary = async (file) => {
+    if (!file) return
+
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+    if (!cloudName || !uploadPreset) {
+      setHeroUploadError('Missing Cloudinary env vars: VITE_CLOUDINARY_CLOUD_NAME / VITE_CLOUDINARY_UPLOAD_PRESET')
+      return
+    }
+
+    setHeroUploadError('')
+    setUploadingHeroImage(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('upload_preset', uploadPreset)
+
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data?.error?.message || 'Cloudinary upload failed')
+      }
+
+      const url = data?.secure_url || data?.url
+      if (!url) {
+        throw new Error('Cloudinary did not return an image URL')
+      }
+
+      setCurrentSlide((prev) => ({
+        ...(prev || {}),
+        imageUrl: url,
+      }))
+    } catch (e) {
+      setHeroUploadError(e?.message || 'Cloudinary upload failed')
+    } finally {
+      setUploadingHeroImage(false)
+    }
+  }
+
   const openEdit = (slide = { title: '', subtitle: '', imageUrl: '' }) => {
+    setHeroUploadError('')
+    setUploadingHeroImage(false)
     setCurrentSlide(slide)
     setIsEditing(true)
   }
@@ -659,6 +706,20 @@ const HeroManager = () => {
               value={currentSlide.imageUrl}
               onChange={(e) => setCurrentSlide({ ...currentSlide, imageUrl: e.target.value })}
             />
+
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+              <input
+                type="file"
+                accept="image/*"
+                disabled={uploadingHeroImage}
+                onChange={(e) => uploadHeroToCloudinary(e.target.files?.[0] || null)}
+                className="bg-bg-main border border-border p-3 rounded-lg text-text-primary placeholder-text-muted cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+              />
+              <div className="md:col-span-2 text-text-secondary text-sm">
+                {uploadingHeroImage ? 'Uploading image...' : 'Choose an image to upload to Cloudinary (it will auto-fill Image URL)'}
+              </div>
+              {heroUploadError ? <div className="md:col-span-3 text-danger text-sm">{heroUploadError}</div> : null}
+            </div>
             <div className="md:col-span-2 flex justify-end gap-3 mt-2">
               <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 text-text-secondary hover:text-text-primary cursor-pointer">Cancel</button>
               <button type="submit" className="bg-primary-button text-white px-6 py-2 rounded-lg hover:bg-primary-hover cursor-pointer">Save Slide</button>
