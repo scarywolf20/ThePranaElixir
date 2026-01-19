@@ -12,6 +12,10 @@ import BackToTop from "./Components/Elements/BackToTop"
 import Contact from "./Components/Pages/Connect"
 import Story from "./Components/Pages/Story"
 import Custom from "./Components/Pages/Custom"
+import PrivacyPolicy from "./Components/Policies/PrivacyPolicy"
+import RefundPolicy from "./Components/Policies/RefundPolicy" 
+import TermsAndConditions from "./Components/Policies/TermsAndConditions"
+import ShippingPolicy from "./Components/Policies/ShippingPolicy"
 
 // Admin Pages
 import AdminLogin from "./Components/Admin Dashboard/AdminLogin"
@@ -128,6 +132,11 @@ function App() {
         <Route path="/story" element={<Story />} />
         {/* Custom route */}
         <Route path="/custom" element={<Custom />} />
+        {/* Policy routes */}
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/refund-policy" element={<RefundPolicy />} />
+        <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+        <Route path="/shipping-policy" element={<ShippingPolicy />} />
       </Routes>
     </Router>
   )
