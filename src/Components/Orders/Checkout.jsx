@@ -1,26 +1,22 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, CreditCard, Truck, MapPin, CheckCircle, Tag, Check, X } from 'lucide-react';
+import { ShieldCheck, CreditCard, MapPin, Tag, Check, X } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
 import { useAuth } from '../../context/useAuth';
 import { useCart } from '../../context/useCart';
+import { httpsCallable } from 'firebase/functions'
 import {
-  addDoc,
   collection,
-  doc,
   getDocs,
   orderBy,
   query,
-  serverTimestamp,
-  setDoc,
 } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { db, functions } from '../../firebase';
 
 const Checkout = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { items: cartItems, subtotal: cartSubtotal, clearCart } = useCart();
-  const [paymentMethod, setPaymentMethod] = useState('card');
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
@@ -38,6 +34,7 @@ const Checkout = () => {
   })
 
   const [placing, setPlacing] = useState(false)
+  const [paymentError, setPaymentError] = useState('')
 
   // Mock coupon codes (in real app, validate from backend)
   const validCoupons = {
@@ -126,10 +123,25 @@ const Checkout = () => {
     setCouponError('');
   };
 
+  const loadRazorpayScript = () => {
+    if (typeof window === 'undefined') return Promise.resolve(false)
+    if (window.Razorpay) return Promise.resolve(true)
+
+    return new Promise((resolve) => {
+      const script = document.createElement('script')
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+      script.async = true
+      script.onload = () => resolve(true)
+      script.onerror = () => resolve(false)
+      document.body.appendChild(script)
+    })
+  }
+
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
     if (!user) return
     if (cartItems.length === 0) return
+    setPaymentError('')
 
     setPlacing(true)
     try {
@@ -150,30 +162,84 @@ const Checkout = () => {
         savedAddressId: selectedAddressId || null,
       }
 
-      const ref = await addDoc(collection(db, 'orders'), {
-        userId: user.uid,
-        customerEmail: user.email || '',
-        items: payloadItems,
+      const ok = await loadRazorpayScript()
+      if (!ok) {
+        setPaymentError('Failed to load Razorpay. Please check your internet and try again.')
+        return
+      }
+
+      const createRazorpayOrder = httpsCallable(functions, 'createRazorpayOrder')
+      const createRes = await createRazorpayOrder({
+        total: Number(finalTotal || 0),
         subtotal: Number(cartSubtotal || 0),
         discount: Number(discount || 0),
         shipping: Number(shipping || 0),
-        total: Number(finalTotal || 0),
-        paymentMethod,
-        paymentStatus: paymentMethod === 'cod' ? 'pending' : 'paid',
-        status: 'Pending',
-        adminInstruction: '',
+        items: payloadItems,
         shippingAddress,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        customerEmail: user.email || '',
       })
 
-      const orderNumber = `ORD-${ref.id.slice(0, 8).toUpperCase()}`
-      await setDoc(doc(db, 'orders', ref.id), { orderNumber }, { merge: true })
+      const {
+        firestoreOrderId,
+        razorpayOrderId,
+        amount,
+        currency,
+        keyId,
+      } = createRes?.data || {}
 
-      await clearCart()
-      navigate('/order-success', { state: { orderId: ref.id, estimatedDelivery } })
+      if (!firestoreOrderId || !razorpayOrderId || !keyId) {
+        setPaymentError('Payment initialization failed. Please try again.')
+        return
+      }
+
+      const options = {
+        key: keyId,
+        amount,
+        currency: currency || 'INR',
+        name: 'The Prana Elixir',
+        description: 'Order Payment',
+        order_id: razorpayOrderId,
+        prefill: {
+          name: `${shippingAddress.firstName} ${shippingAddress.lastName}`.trim(),
+          email: user.email || '',
+        },
+        notes: {
+          firestoreOrderId,
+        },
+        handler: async (response) => {
+          try {
+            const verifyRazorpayPayment = httpsCallable(functions, 'verifyRazorpayPayment')
+            await verifyRazorpayPayment({
+              firestoreOrderId,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            })
+
+            await clearCart()
+            navigate('/order-success', { state: { orderId: firestoreOrderId, estimatedDelivery } })
+          } catch (err) {
+            setPaymentError(err?.message || 'Payment verification failed. If money was deducted, please contact support.')
+          } finally {
+            setPlacing(false)
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setPaymentError('Payment cancelled.')
+            setPlacing(false)
+          },
+        },
+      }
+
+      const rzp = new window.Razorpay(options)
+      rzp.on('payment.failed', (resp) => {
+        setPaymentError(resp?.error?.description || 'Payment failed. Please try again.')
+        setPlacing(false)
+      })
+      rzp.open()
     } finally {
-      setPlacing(false)
+      // placing is controlled by Razorpay flow; do not blindly reset here.
     }
   };
 
@@ -274,51 +340,12 @@ const Checkout = () => {
                 <h2 className="text-xl font-serif text-text-primary">Payment Method</h2>
               </div>
 
-              {/* Payment Tabs */}
-              <div className="flex gap-4 mb-6">
-                <button 
-                  type="button"
-                  onClick={() => setPaymentMethod('card')}
-                  className={`flex-1 py-3 px-4 rounded-xl border text-sm font-bold transition-all cursor-pointer
-                    ${paymentMethod === 'card' ? 'border-primary-button bg-primary-button/10 text-primary-button' : 'border-border text-text-secondary'}`}
-                >
-                  Credit/Debit Card
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => setPaymentMethod('cod')}
-                  className={`flex-1 py-3 px-4 rounded-xl border text-sm font-bold transition-all cursor-pointer
-                    ${paymentMethod === 'cod' ? 'border-primary-button bg-primary-button/10 text-primary-button' : 'border-border text-text-secondary'}`}
-                >
-                  Cash on Delivery
-                </button>
+              <div className="bg-bg-main p-4 rounded-lg flex items-start gap-3 text-text-secondary text-sm">
+                <ShieldCheck className="shrink-0 text-primary-button" size={20} />
+                <p>Online payment via Razorpay (UPI, Cards, NetBanking, Wallets). Cash on Delivery is not available.</p>
               </div>
 
-              {paymentMethod === 'card' && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase text-text-secondary">Card Number</label>
-                    <input placeholder="0000 0000 0000 0000" className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase text-text-secondary">Expiry Date</label>
-                      <input placeholder="MM/YY" className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase text-text-secondary">CVC</label>
-                      <input placeholder="123" className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {paymentMethod === 'cod' && (
-                <div className="bg-bg-main p-4 rounded-lg flex items-start gap-3 text-text-secondary text-sm">
-                  <Truck className="shrink-0 text-primary-button" size={20} />
-                  <p>You can pay with cash upon delivery. An additional fee of Rs. 50 may apply for handling.</p>
-                </div>
-              )}
+              {paymentError ? <div className="mt-4 text-danger text-sm">{paymentError}</div> : null}
             </div>
 
           </div>
