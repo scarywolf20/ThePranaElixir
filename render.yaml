@@ -6,17 +6,29 @@ services:
     buildCommand: npm run build
     staticPublishPath: dist
     routes:
-      - route: /refund-policy
-        # Fallback to index.html so React Router handles it
+      # Explicit policy routes fallback to index.html
       - route: /privacy-policy
+        serve: dist/index.html
+      - route: /refund-policy
+        serve: dist/index.html
       - route: /terms-and-conditions
+        serve: dist/index.html
       - route: /shipping-policy
+        serve: dist/index.html
+      # Other SPA routes
       - route: /shop
+        serve: dist/index.html
       - route: /shop/*
+        serve: dist/index.html
       - route: /product/*
+        serve: dist/index.html
       - route: /customer/*
+        serve: dist/index.html
       - route: /admin/*
+        serve: dist/index.html
       - route: /checkout
+        serve: dist/index.html
       - route: /order-success
+        serve: dist/index.html
       # Catch-all: any other path goes to index.html
       - route: /(.*)
