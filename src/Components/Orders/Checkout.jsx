@@ -172,7 +172,8 @@ const Checkout = () => {
 
     const json = await res.json().catch(() => ({}))
     if (!res.ok) {
-      const msg = json?.message || 'Shiprocket shipment creation failed'
+      const rawMsg = json?.message || 'Shiprocket shipment creation failed'
+      const msg = typeof rawMsg === 'string' ? rawMsg : JSON.stringify(rawMsg)
       const err = new Error(msg)
       err.details = json
       throw err

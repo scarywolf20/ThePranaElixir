@@ -186,11 +186,17 @@ app.post('/shiprocket/create', requireFirebaseAuth, async (req, res) => {
 
     // Only allow the owner (or admins if you add claims later)
     if (String(order.userId || '') !== String(req.user.uid || '')) {
-      return res.status(403).json({ error: 'forbidden' })
+      return res.status(403).json({
+        error: 'forbidden',
+        message: 'You are not allowed to create shipment for this order',
+      })
     }
 
     if (String(order.paymentStatus || '') !== 'paid') {
-      return res.status(400).json({ error: 'order_not_paid', message: 'Shiprocket order can be created only after payment is paid' })
+      return res.status(400).json({
+        error: 'order_not_paid',
+        message: 'Shiprocket order can be created only after payment is paid',
+      })
     }
 
     const token = await getShiprocketToken()
