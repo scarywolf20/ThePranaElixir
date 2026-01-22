@@ -31,6 +31,8 @@ const Checkout = () => {
     address: '',
     city: '',
     postalCode: '',
+    phone: '',
+    state: '',
   })
 
   const [placing, setPlacing] = useState(false)
@@ -87,6 +89,8 @@ const Checkout = () => {
     const nextPostal = String(selected.postalCode || '').trim()
     const nextFirstName = String(selected.firstName || '').trim()
     const nextLastName = String(selected.lastName || '').trim()
+    const nextPhone = String(selected.phone || selected.mobile || selected.phoneNumber || '').trim()
+    const nextState = String(selected.state || selected.province || '').trim()
 
     setShippingForm((prev) => ({
       ...prev,
@@ -95,6 +99,8 @@ const Checkout = () => {
       postalCode: nextPostal || prev.postalCode,
       firstName: nextFirstName || prev.firstName,
       lastName: nextLastName || prev.lastName,
+      phone: nextPhone || prev.phone,
+      state: nextState || prev.state,
     }))
   }, [addresses, selectedAddressId])
 
@@ -137,6 +143,43 @@ const Checkout = () => {
     })
   }
 
+  const createShiprocketShipment = async ({ firestoreOrderId }) => {
+    const baseUrl = String(import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '')
+    if (!baseUrl) {
+      throw new Error('Missing VITE_BACKEND_URL')
+    }
+    if (!user) {
+      throw new Error('Not logged in')
+    }
+
+    const token = await user.getIdToken()
+    const selected = addresses.find((a) => a.id === selectedAddressId)
+
+    const overrides = {
+      phone: shippingForm.phone || selected?.phone || selected?.mobile || selected?.phoneNumber || '',
+      state: shippingForm.state || selected?.state || selected?.province || '',
+      country: selected?.country || 'India',
+    }
+
+    const res = await fetch(`${baseUrl}/shiprocket/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ firestoreOrderId, overrides }),
+    })
+
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const msg = json?.message || 'Shiprocket shipment creation failed'
+      const err = new Error(msg)
+      err.details = json
+      throw err
+    }
+    return json
+  }
+
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
     if (!user) return
@@ -159,6 +202,8 @@ const Checkout = () => {
         address: shippingForm.address.trim(),
         city: shippingForm.city.trim(),
         postalCode: shippingForm.postalCode.trim(),
+        phone: shippingForm.phone.trim(),
+        state: shippingForm.state.trim(),
         savedAddressId: selectedAddressId || null,
       }
 
@@ -215,6 +260,12 @@ const Checkout = () => {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             })
+
+            try {
+              await createShiprocketShipment({ firestoreOrderId })
+            } catch (err) {
+              console.error('Shiprocket create failed', err)
+            }
 
             await clearCart()
             navigate('/order-success', { state: { orderId: firestoreOrderId, estimatedDelivery } })
@@ -325,6 +376,26 @@ const Checkout = () => {
                     required
                     value={shippingForm.postalCode}
                     onChange={(e) => setShippingForm((p) => ({ ...p, postalCode: e.target.value }))}
+                    className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-text-secondary">Phone</label>
+                  <input
+                    required
+                    value={shippingForm.phone}
+                    onChange={(e) => setShippingForm((p) => ({ ...p, phone: e.target.value }))}
+                    className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-text-secondary">State</label>
+                  <input
+                    required
+                    value={shippingForm.state}
+                    onChange={(e) => setShippingForm((p) => ({ ...p, state: e.target.value }))}
                     className="w-full bg-bg-main border border-border rounded-lg px-4 py-3 text-text-primary focus:border-primary-button focus:outline-none"
                   />
                 </div>
