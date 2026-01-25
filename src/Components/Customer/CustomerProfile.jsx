@@ -68,12 +68,12 @@ const ProfileTab = ({ user, onSave, saving, onAvatarUpload }) => {
             onChange={handleFileChange}
             className="hidden"
           />
-          <button 
+          {/* <button 
             onClick={() => fileInputRef.current?.click()}
             className="absolute bottom-1 right-1 bg-white text-text-primary p-2 rounded-full shadow-lg hover:bg-primary-button hover:text-white transition-all cursor-pointer"
           >
             <Camera size={16} />
-          </button>
+          </button> */}
         </div>
         <div className="text-center md:text-left">
           <h2 className="text-3xl font-serif text-text-primary">{user.name}</h2>
@@ -174,13 +174,128 @@ const OrdersTab = ({ orders, loading }) => (
   </motion.div>
 );
 
-const AddressesTab = ({ addresses, onAdd, onRemove, loading }) => {
+// Address Modal Component
+const AddressModal = ({ isOpen, onClose, onSave, formData, setFormData, saving }) => {
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+        {/* Backdrop */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-text-primary/40 backdrop-blur-sm"
+        />
+
+        {/* Modal Content */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          className="relative w-full max-w-lg bg-white rounded-[3rem] shadow-2xl overflow-hidden"
+        >
+          <div className="p-8 md:p-12">
+            <div className="flex justify-between items-center mb-10">
+              <h3 className="text-2xl font-serif text-text-primary tracking-tight">Add New Address</h3>
+              <button onClick={onClose} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={onSave} className="space-y-8">
+              {/* Address Type Selection */}
+              <div className="flex gap-4">
+                {['Home', 'Work', 'Other'].map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, type })}
+                    className={`px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all
+                      ${formData.type === type 
+                        ? 'bg-text-primary text-white border-text-primary' 
+                        : 'bg-transparent text-text-secondary border-border hover:border-text-primary'}`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+
+              {/* Input Fields */}
+              <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+                <div className="space-y-1 border-b border-border/40 pb-2 col-span-1">
+                  <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">First Name</label>
+                  <input 
+                    required
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    className="w-full bg-transparent outline-none text-text-primary py-1" 
+                  />
+                </div>
+                <div className="space-y-1 border-b border-border/40 pb-2 col-span-1">
+                  <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Last Name</label>
+                  <input 
+                    required
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    className="w-full bg-transparent outline-none text-text-primary py-1" 
+                  />
+                </div>
+                <div className="space-y-1 border-b border-border/40 pb-2 col-span-2">
+                  <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Address Line</label>
+                  <input 
+                    required
+                    value={formData.addressLine}
+                    onChange={(e) => setFormData({ ...formData, addressLine: e.target.value })}
+                    className="w-full bg-transparent outline-none text-text-primary py-1" 
+                    placeholder="Street, Apartment, Suite"
+                  />
+                </div>
+                <div className="space-y-1 border-b border-border/40 pb-2 col-span-1">
+                  <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">City</label>
+                  <input 
+                    required
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    className="w-full bg-transparent outline-none text-text-primary py-1" 
+                  />
+                </div>
+                <div className="space-y-1 border-b border-border/40 pb-2 col-span-1">
+                  <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Pincode</label>
+                  <input 
+                    required
+                    value={formData.postalCode}
+                    onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+                    className="w-full bg-transparent outline-none text-text-primary py-1" 
+                  />
+                </div>
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={saving}
+                type="submit"
+                className="w-full bg-text-primary text-white py-4 rounded-2xl text-xs font-bold uppercase tracking-[0.2em] shadow-lg hover:bg-primary-button transition-colors disabled:opacity-50"
+              >
+                {saving ? "Saving Treasure..." : "Save Address"}
+              </motion.button>
+            </form>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+};
+
+const AddressesTab = ({ addresses, onAdd, onRemove, loading, saving }) => {
   const [showModal, setShowModal] = useState(false);
   const [addressForm, setAddressForm] = useState({
     type: 'Home',
     firstName: '',
     lastName: '',
-    phone: '',
     addressLine: '',
     city: '',
     postalCode: ''
@@ -193,7 +308,6 @@ const AddressesTab = ({ addresses, onAdd, onRemove, loading }) => {
       type: 'Home',
       firstName: '',
       lastName: '',
-      phone: '',
       addressLine: '',
       city: '',
       postalCode: ''
@@ -238,9 +352,6 @@ const AddressesTab = ({ addresses, onAdd, onRemove, loading }) => {
                   <p className="text-text-secondary text-sm">
                     {addr.city}, {addr.postalCode}
                   </p>
-                  <p className="text-text-secondary text-sm mt-1">
-                    {addr.phone}
-                  </p>
                 </div>
                 <button 
                   onClick={() => onRemove(addr.id)} 
@@ -255,140 +366,14 @@ const AddressesTab = ({ addresses, onAdd, onRemove, loading }) => {
       </motion.div>
 
       {/* Address Modal */}
-      <AnimatePresence>
-        {showModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-serif text-text-primary">Add New Address</h3>
-                <button onClick={() => setShowModal(false)} className="text-text-secondary hover:text-text-primary">
-                  <X size={24} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-text-secondary tracking-widest block mb-2">
-                    Address Type
-                  </label>
-                  <select
-                    value={addressForm.type}
-                    onChange={(e) => setAddressForm({...addressForm, type: e.target.value})}
-                    className="w-full bg-bg-main/50 border border-border rounded-lg py-3 px-4 text-text-primary focus:border-primary-button transition-colors outline-none"
-                  >
-                    <option>Home</option>
-                    <option>Work</option>
-                    <option>Other</option>
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-text-secondary tracking-widest block mb-2">
-                      First Name
-                    </label>
-                    <input
-                      required
-                      value={addressForm.firstName}
-                      onChange={(e) => setAddressForm({...addressForm, firstName: e.target.value})}
-                      className="w-full bg-bg-main/50 border border-border rounded-lg py-3 px-4 text-text-primary focus:border-primary-button transition-colors outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-text-secondary tracking-widest block mb-2">
-                      Last Name
-                    </label>
-                    <input
-                      required
-                      value={addressForm.lastName}
-                      onChange={(e) => setAddressForm({...addressForm, lastName: e.target.value})}
-                      className="w-full bg-bg-main/50 border border-border rounded-lg py-3 px-4 text-text-primary focus:border-primary-button transition-colors outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-text-secondary tracking-widest block mb-2">
-                    Phone Number
-                  </label>
-                  <input
-                    required
-                    type="tel"
-                    value={addressForm.phone}
-                    onChange={(e) => setAddressForm({...addressForm, phone: e.target.value})}
-                    className="w-full bg-bg-main/50 border border-border rounded-lg py-3 px-4 text-text-primary focus:border-primary-button transition-colors outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-text-secondary tracking-widest block mb-2">
-                    Address Line
-                  </label>
-                  <input
-                    required
-                    value={addressForm.addressLine}
-                    onChange={(e) => setAddressForm({...addressForm, addressLine: e.target.value})}
-                    className="w-full bg-bg-main/50 border border-border rounded-lg py-3 px-4 text-text-primary focus:border-primary-button transition-colors outline-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-text-secondary tracking-widest block mb-2">
-                      City
-                    </label>
-                    <input
-                      required
-                      value={addressForm.city}
-                      onChange={(e) => setAddressForm({...addressForm, city: e.target.value})}
-                      className="w-full bg-bg-main/50 border border-border rounded-lg py-3 px-4 text-text-primary focus:border-primary-button transition-colors outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-text-secondary tracking-widest block mb-2">
-                      Postal Code
-                    </label>
-                    <input
-                      required
-                      value={addressForm.postalCode}
-                      onChange={(e) => setAddressForm({...addressForm, postalCode: e.target.value})}
-                      className="w-full bg-bg-main/50 border border-border rounded-lg py-3 px-4 text-text-primary focus:border-primary-button transition-colors outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-4 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="flex-1 border border-border text-text-primary px-6 py-3 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-bg-main transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 bg-text-primary text-white px-6 py-3 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-primary-button transition-all"
-                  >
-                    Save Address
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <AddressModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSave={handleSubmit}
+        formData={addressForm}
+        setFormData={setAddressForm}
+        saving={saving}
+      />
     </>
   );
 };
@@ -708,6 +693,7 @@ const CustomerProfile = () => {
                     onAdd={handleAddAddress}
                     onRemove={handleRemoveAddress}
                     loading={loadingData}
+                    saving={saving}
                   />
                 )}
                 
