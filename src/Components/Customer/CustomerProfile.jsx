@@ -175,7 +175,18 @@ const OrdersTab = ({ orders, loading }) => (
 );
 
 // Address Modal Component
-const AddressModal = ({ isOpen, onClose, onSave, formData, setFormData, saving }) => {
+const AddressModal = ({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  formData, 
+  setFormData, 
+  saving,
+  validationErrors = {},
+  isVerifyingPin = false,
+  pinCodeVerified = false,
+  handlePinCodeChange
+}) => {
   if (!isOpen) return null;
 
   return (
@@ -231,8 +242,11 @@ const AddressModal = ({ isOpen, onClose, onSave, formData, setFormData, saving }
                     required
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    className="w-full bg-transparent outline-none text-text-primary py-1" 
+                    className={`w-full bg-transparent outline-none text-text-primary py-1 ${validationErrors.firstName ? 'border-red-400' : ''}`}
                   />
+                  {validationErrors.firstName && (
+                    <p className="text-[9px] text-red-500 mt-1">{validationErrors.firstName}</p>
+                  )}
                 </div>
                 <div className="space-y-1 border-b border-border/40 pb-2 col-span-1">
                   <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Last Name</label>
@@ -240,8 +254,11 @@ const AddressModal = ({ isOpen, onClose, onSave, formData, setFormData, saving }
                     required
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    className="w-full bg-transparent outline-none text-text-primary py-1" 
+                    className={`w-full bg-transparent outline-none text-text-primary py-1 ${validationErrors.lastName ? 'border-red-400' : ''}`}
                   />
+                  {validationErrors.lastName && (
+                    <p className="text-[9px] text-red-500 mt-1">{validationErrors.lastName}</p>
+                  )}
                 </div>
                 <div className="space-y-1 border-b border-border/40 pb-2 col-span-2">
                   <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Address Line</label>
@@ -249,9 +266,12 @@ const AddressModal = ({ isOpen, onClose, onSave, formData, setFormData, saving }
                     required
                     value={formData.addressLine}
                     onChange={(e) => setFormData({ ...formData, addressLine: e.target.value })}
-                    className="w-full bg-transparent outline-none text-text-primary py-1" 
+                    className={`w-full bg-transparent outline-none text-text-primary py-1 ${validationErrors.addressLine ? 'border-red-400' : ''}`}
                     placeholder="Street, Apartment, Suite"
                   />
+                  {validationErrors.addressLine && (
+                    <p className="text-[9px] text-red-500 mt-1">{validationErrors.addressLine}</p>
+                  )}
                 </div>
                 <div className="space-y-1 border-b border-border/40 pb-2 col-span-1">
                   <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">City</label>
@@ -259,17 +279,64 @@ const AddressModal = ({ isOpen, onClose, onSave, formData, setFormData, saving }
                     required
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    className="w-full bg-transparent outline-none text-text-primary py-1" 
+                    className={`w-full bg-transparent outline-none text-text-primary py-1 ${validationErrors.city ? 'border-red-400' : ''}`}
+                    readOnly={pinCodeVerified}
                   />
+                  {validationErrors.city && (
+                    <p className="text-[9px] text-red-500 mt-1">{validationErrors.city}</p>
+                  )}
+                  {pinCodeVerified && (
+                    <p className="text-[9px] text-green-600 mt-1">✓ Auto-filled from PIN</p>
+                  )}
                 </div>
                 <div className="space-y-1 border-b border-border/40 pb-2 col-span-1">
-                  <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Pincode</label>
+                  <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">State</label>
                   <input 
                     required
-                    value={formData.postalCode}
-                    onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                    className="w-full bg-transparent outline-none text-text-primary py-1" 
+                    value={formData.state}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    className={`w-full bg-transparent outline-none text-text-primary py-1 ${validationErrors.state ? 'border-red-400' : ''}`}
+                    readOnly={pinCodeVerified}
                   />
+                  {validationErrors.state && (
+                    <p className="text-[9px] text-red-500 mt-1">{validationErrors.state}</p>
+                  )}
+                  {pinCodeVerified && (
+                    <p className="text-[9px] text-green-600 mt-1">✓ Auto-filled from PIN</p>
+                  )}
+                </div>
+                <div className="space-y-1 border-b border-border/40 pb-2 col-span-2 relative">
+                  <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Pincode</label>
+                  <div className="relative">
+                    <input 
+                      required
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={formData.postalCode}
+                      onChange={handlePinCodeChange}
+                      className={`w-full bg-transparent outline-none text-text-primary py-1 pr-8 ${validationErrors.postalCode ? 'border-red-400' : ''}`}
+                      placeholder="Enter 6-digit PIN code"
+                    />
+                    {isVerifyingPin && (
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                        <div className="w-4 h-4 border-2 border-primary-button border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                    {pinCodeVerified && !isVerifyingPin && (
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2 text-green-600">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  {validationErrors.postalCode && (
+                    <p className="text-[9px] text-red-500 mt-1">{validationErrors.postalCode}</p>
+                  )}
+                  {pinCodeVerified && !validationErrors.postalCode && (
+                    <p className="text-[9px] text-green-600 mt-1">✓ PIN code verified</p>
+                  )}
                 </div>
               </div>
 
@@ -298,11 +365,128 @@ const AddressesTab = ({ addresses, onAdd, onRemove, loading, saving }) => {
     lastName: '',
     addressLine: '',
     city: '',
+    state: '',
     postalCode: ''
   });
+  const [validationErrors, setValidationErrors] = useState({});
+  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
+  const [pinCodeVerified, setPinCodeVerified] = useState(false);
+
+  // Validation functions
+  const validateName = (name) => {
+    const nameRegex = /^[a-zA-Z\s]{2,50}$/;
+    return nameRegex.test(name);
+  };
+
+  const validatePinCode = (pin) => {
+    const pinRegex = /^[1-9][0-9]{5}$/;
+    return pinRegex.test(pin);
+  };
+
+  const validateAddress = () => {
+    const errors = {};
+
+    if (!addressForm.firstName.trim()) {
+      errors.firstName = 'First name is required';
+    } else if (!validateName(addressForm.firstName)) {
+      errors.firstName = 'Please enter a valid first name (2-50 characters, letters only)';
+    }
+
+    if (!addressForm.lastName.trim()) {
+      errors.lastName = 'Last name is required';
+    } else if (!validateName(addressForm.lastName)) {
+      errors.lastName = 'Please enter a valid last name (2-50 characters, letters only)';
+    }
+
+    if (!addressForm.addressLine.trim()) {
+      errors.addressLine = 'Address is required';
+    } else if (addressForm.addressLine.length < 10) {
+      errors.addressLine = 'Please enter a complete address (minimum 10 characters)';
+    }
+
+    if (!addressForm.city.trim()) {
+      errors.city = 'City is required';
+    }
+
+    if (!addressForm.state.trim()) {
+      errors.state = 'State is required';
+    }
+
+    if (!addressForm.postalCode.trim()) {
+      errors.postalCode = 'PIN code is required';
+    } else if (!validatePinCode(addressForm.postalCode)) {
+      errors.postalCode = 'Please enter a valid 6-digit PIN code';
+    } else if (!pinCodeVerified) {
+      errors.postalCode = 'Please verify the PIN code';
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Verify PIN code and auto-fill city/state
+  const verifyPinCode = async (pinCode) => {
+    if (!validatePinCode(pinCode)) {
+      setValidationErrors(prev => ({ ...prev, postalCode: 'Invalid PIN code format' }));
+      setPinCodeVerified(false);
+      return;
+    }
+
+    setIsVerifyingPin(true);
+    setValidationErrors(prev => ({ ...prev, postalCode: '' }));
+
+    try {
+      const response = await fetch(`https://api.postalpincode.in/pincode/${pinCode}`);
+      const data = await response.json();
+
+      if (data[0].Status === 'Success' && data[0].PostOffice && data[0].PostOffice.length > 0) {
+        const postOffice = data[0].PostOffice[0];
+        
+        setAddressForm(prev => ({
+          ...prev,
+          city: postOffice.District || prev.city,
+          state: postOffice.State || prev.state
+        }));
+        
+        setPinCodeVerified(true);
+        setValidationErrors(prev => ({ ...prev, postalCode: '' }));
+      } else {
+        setValidationErrors(prev => ({ 
+          ...prev, 
+          postalCode: 'PIN code not found. Please enter a valid Indian PIN code' 
+        }));
+        setPinCodeVerified(false);
+      }
+    } catch (error) {
+      console.error('Error verifying PIN code:', error);
+      setValidationErrors(prev => ({ 
+        ...prev, 
+        postalCode: 'Unable to verify PIN code. Please check your internet connection' 
+      }));
+      setPinCodeVerified(false);
+    } finally {
+      setIsVerifyingPin(false);
+    }
+  };
+
+  // Handle PIN code change
+  const handlePinCodeChange = (e) => {
+    const pin = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setAddressForm({ ...addressForm, postalCode: pin });
+    setPinCodeVerified(false);
+    
+    if (pin.length === 6) {
+      verifyPinCode(pin);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!validateAddress()) {
+      return;
+    }
+
     await onAdd(addressForm);
     setAddressForm({
       type: 'Home',
@@ -310,8 +494,11 @@ const AddressesTab = ({ addresses, onAdd, onRemove, loading, saving }) => {
       lastName: '',
       addressLine: '',
       city: '',
+      state: '',
       postalCode: ''
     });
+    setValidationErrors({});
+    setPinCodeVerified(false);
     setShowModal(false);
   };
 
@@ -350,7 +537,7 @@ const AddressesTab = ({ addresses, onAdd, onRemove, loading, saving }) => {
                     {addr.addressLine}
                   </p>
                   <p className="text-text-secondary text-sm">
-                    {addr.city}, {addr.postalCode}
+                    {addr.city}, {addr.state} {addr.postalCode}
                   </p>
                 </div>
                 <button 
@@ -368,11 +555,19 @@ const AddressesTab = ({ addresses, onAdd, onRemove, loading, saving }) => {
       {/* Address Modal */}
       <AddressModal
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={() => {
+          setShowModal(false);
+          setValidationErrors({});
+          setPinCodeVerified(false);
+        }}
         onSave={handleSubmit}
         formData={addressForm}
         setFormData={setAddressForm}
         saving={saving}
+        validationErrors={validationErrors}
+        isVerifyingPin={isVerifyingPin}
+        pinCodeVerified={pinCodeVerified}
+        handlePinCodeChange={handlePinCodeChange}
       />
     </>
   );
