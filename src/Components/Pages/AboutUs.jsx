@@ -1,79 +1,136 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
 const AboutUs = () => {
+  // Animation variants for the text reveal
+  const textVariants = {
+    hidden: { opacity: 0, x: 50 },
+    visible: { 
+      opacity: 1, 
+      x: 0, 
+      transition: { duration: 0.8, ease: "easeOut" } 
+    }
+  };
+
+  const imageVariants = {
+    hidden: { opacity: 0, scale: 0.9 },
+    visible: { 
+      opacity: 1, 
+      scale: 1, 
+      transition: { duration: 1, ease: [0.16, 1, 0.3, 1] } 
+    }
+  };
+
   return (
-    <section className="max-w-7xl mx-auto px-6 py-16 md:py-24 font-sans">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 items-center">
+    <section className="max-w-7xl mx-auto px-6 py-20 md:py-32 font-sans overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         
         {/* Left Side: Overlapping Image Grid */}
-        <div className="relative">
+        <motion.div 
+          className="relative"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={imageVariants}
+        >
+          {/* Main Decorative Background (Subtle Shape) */}
+          <div className="absolute -top-10 -left-10 w-64 h-64 bg-primary-button/5 rounded-full blur-3xl -z-10" />
+          
           {/* Main Owner Image */}
-          <div className="rounded-[2rem] overflow-hidden shadow-xl w-3/4 aspect-[4/5] bg-gray-100">
+          <div className="rounded-[3rem] overflow-hidden shadow-2xl w-4/5 aspect-[4/5] bg-bg-surface relative z-10 border border-border/10">
             <img 
               src="/owners-image.jpg" 
-              alt="Business Owners" 
-              className="w-full h-full object-cover"
+              alt="The Founders" 
+              className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
             />
           </div>
           
-          {/* Floating Product Image Overlay */}
-          {/* <div className="absolute -bottom-10 -right-4 md:-right-10 w-1/2 rounded-[2rem] overflow-hidden border-8 border-white shadow-2xl bg-white">
+          {/* Floating Aesthetic Overlay */}
+          <motion.div 
+            initial={{ y: 40, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.8 }}
+            className="absolute -bottom-12 right-0 w-1/2 rounded-[2.5rem] overflow-hidden border-[12px] border-white shadow-2xl bg-white z-20"
+          >
             <div className="aspect-square">
               <img 
                 src="/product-detail.jpg" 
-                alt="Product detail" 
+                alt="Mindful Craftsmanship" 
                 className="w-full h-full object-cover"
               />
             </div>
-          </div> */}
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Right Side: Content */}
-        <div className="flex flex-col space-y-6 md:pl-1">
-          <header>
-            <span className="uppercase tracking-[0.3em] text-xs font-semibold text-text-secondary block mb-2">
-              About Us
-            </span>
-            <h2 className="text-5xl md:text-5xl font-light tracking-widest text-gray-800 ">
-             The Prana Elixir 
+        <motion.div 
+          className="flex flex-col space-y-8"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={textVariants}
+        >
+          <header className="space-y-4">
+            <motion.span 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="uppercase tracking-[0.5em] text-[10px] md:text-xs font-bold text-text-secondary block"
+            >
+              Our Philosophy
+            </motion.span>
+            <h2 className="text-4xl md:text-6xl font-serif tracking-tight text-text-primary leading-[1.1]">
+              The Prana Elixir 
             </h2>
+            <div className="w-20 h-[2px] bg-primary-button/40 mt-2" />
           </header>
 
-          <blockquote className="text-xl md:text-3xl font-light leading-relaxed text-gray-600 italic">
+          <motion.blockquote 
+            className="text-xl md:text-2xl font-light leading-relaxed text-text-primary/80 italic font-serif"
+          >
             “All our soaps are mindfully hand-made with cold process technique 
             using pure plant-based oils and coloured with botanical powders 
             & naturally occurring clays.”
-          </blockquote>
+          </motion.blockquote>
 
           {/* Product Features List */}
-          <ul className="flex flex-wrap gap-x-6 gap-y-2 text-m text-text-primary font-medium">
-            <li className="flex items-center space-x-2">
-              <span className="w-1.5 h-1.5 bg-text-primary rounded-full"></span>
-              <span>Hand-Cut</span>
-            </li>
-            <li className="flex items-center space-x-2">
-              <span className="w-1.5 h-1.5 bg-text-primary rounded-full"></span>
-              <span>Natural</span>
-            </li>
-            <li className="flex items-center space-x-2">
-              <span className="w-1.5 h-1.5 bg-text-primary rounded-full"></span>
-              <span>SLS & Paraben-free</span>
-            </li>
-            <li className="flex items-center space-x-2">
-              <span className="w-1.5 h-1.5 bg-text-primary rounded-full"></span>
-              <span>Phthalates-free</span>
-            </li>
-          </ul>
+          <motion.ul 
+            className="grid grid-cols-2 gap-y-4 pt-4"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            {[
+              "Hand-Cut with Love", 
+              "100% Natural", 
+              "SLS & Paraben-free", 
+              "Phthalates-free"
+            ].map((item, idx) => (
+              <li key={idx} className="flex items-center space-x-3 group">
+                <div className="w-1.5 h-1.5 bg-primary-button rounded-full group-hover:scale-150 transition-transform" />
+                <span className="text-xs md:text-sm tracking-[0.1em] uppercase text-text-primary font-semibold">
+                  {item}
+                </span>
+              </li>
+            ))}
+          </motion.ul>
 
-          {/* <div className="pt-4">
-            <button className="bg-[#6D5447] text-white px-8 py-3 rounded-full flex items-center gap-2 hover:bg-[#5a453a] transition-colors uppercase text-xs tracking-widest">
-              More 
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
+          <motion.div 
+            className="pt-8"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <button className="group relative overflow-hidden bg-text-primary text-white px-10 py-4 rounded-full transition-all hover:pr-14 active:scale-95 shadow-lg">
+              <span className="relative z-10 text-[10px] tracking-[0.3em] uppercase font-bold">Discover More</span>
+              <div className="absolute top-1/2 -translate-y-1/2 right-4 opacity-0 group-hover:opacity-100 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </div>
             </button>
-          </div> */}
-        </div>
+          </motion.div>
+        </motion.div>
 
       </div>
     </section>

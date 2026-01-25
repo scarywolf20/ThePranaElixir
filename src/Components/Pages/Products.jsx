@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import ShopNowButton from '../Elements/ShopNowButton';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa6';
 
 const ProductSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const navigate = useNavigate();
 
-  // Memoize products array to prevent recreation on every render
   const products = useMemo(() => [
     { id: 1, title: "POSTCARDS", price: "700/-", image: "https://images.unsplash.com/photo-1579208575657-c595a05383b7?auto=format&fit=crop&q=80&w=800" },
     { id: 2, title: "BATH ACCESSORIES", price: "295/-", image: "https://images.unsplash.com/photo-1600857062241-98e5dba7f214?auto=format&fit=crop&q=80&w=800" },
@@ -13,9 +15,10 @@ const ProductSection = () => {
     { id: 5, title: "SOY CANDLES", price: "850/-", image: "https://images.unsplash.com/photo-1596433809252-260c2745dfdd?auto=format&fit=crop&q=80&w=800" },
   ], []);
 
-  const maxIndex = products.length - 3;
+  // Show 3 products on desktop, 1 on mobile
+  const itemsToShow = window.innerWidth < 768 ? 1 : 3;
+  const maxIndex = products.length - itemsToShow;
 
-  // Memoize callback functions to prevent recreation
   const nextSlide = useCallback(() => {
     setCurrentIndex(prev => Math.min(prev + 1, maxIndex));
   }, [maxIndex]);
@@ -24,108 +27,119 @@ const ProductSection = () => {
     setCurrentIndex(prev => Math.max(prev - 1, 0));
   }, []);
 
-  // Memoize inline styles
-  const dashedLineStyle = useMemo(() => ({
-    backgroundImage: `linear-gradient(to right, #CBBBAA 25%, transparent 25%)`,
-    backgroundSize: '20px 1px',
-    backgroundRepeat: 'repeat-x'
-  }), []);
-
-  const sliderTransform = useMemo(() => ({
-    transform: `translateX(-${currentIndex * (100 / 3)}%)`
-  }), [currentIndex]);
-
   return (
-    <section className="bg-bg-main py-16 px-4 md:px-12 overflow-hidden">
+    <section className="bg-bg-surface py-20 px-6 md:px-16 overflow-hidden">
       <div className="max-w-7xl mx-auto">
         
-        {/* Header */}
-        {/* <div className="flex flex-col items-center mb-16">
-          <h2 className="text-text-primary text-3xl tracking-[0.3em] font-light uppercase mb-8">
-            Our Collection
-          </h2> */}
-          {/* <div 
-            className="w-full h-[1px]" 
-            style={dashedLineStyle}
-          /> */}
-        {/* </div> */}
+        {/* Header Section */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
+        >
+          <h2 className="text-text-primary text-2xl md:text-3xl tracking-[0.4em] font-serif uppercase mb-4">
+            Curated Collection
+          </h2>
+          <div className="w-24 h-[1px] bg-primary-button/30 mx-auto" />
+        </motion.div>
 
-        {/* Slider Wrapper */}
-        <div className="relative px-2">
+        {/* Slider Container */}
+        <div className="relative group">
           
-          {/* Navigation Arrows */}
-          <button 
-            onClick={prevSlide}
-            disabled={currentIndex === 0}
-            aria-label="Previous products"
-            className={`absolute -left-8 md:-left-12 top-[40%] z-20 text-4xl text-text-primary transition-opacity duration-200 cursor-pointer ${
-              currentIndex === 0 ? 'opacity-10 cursor-not-allowed' : 'opacity-60 hover:opacity-100'
-            }`}
-          >
-            &#8249;
-          </button>
+          {/* Navigation Buttons */}
+          <AnimatePresence>
+            {currentIndex > 0 && (
+              <motion.button 
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                onClick={prevSlide}
+                className="absolute -left-4 md:-left-12 top-1/2 -translate-y-1/2 z-30 p-4 bg-white/80 backdrop-blur-md rounded-full shadow-lg text-text-primary hover:bg-primary-button hover:text-white transition-all"
+              >
+                <FaChevronLeft size={20} />
+              </motion.button>
+            )}
+          </AnimatePresence>
 
-          <button 
-            onClick={nextSlide}
-            disabled={currentIndex >= maxIndex}
-            aria-label="Next products"
-            className={`absolute -right-8 md:-right-12 top-[40%] z-20 text-4xl text-text-primary transition-opacity duration-200 cursor-pointer ${
-              currentIndex >= maxIndex ? 'opacity-10 cursor-not-allowed' : 'opacity-60 hover:opacity-100'
-            }`}
-          >
-            &#8250;
-          </button>
+          <AnimatePresence>
+            {currentIndex < maxIndex && (
+              <motion.button 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                onClick={nextSlide}
+                className="absolute -right-4 md:-right-12 top-1/2 -translate-y-1/2 z-30 p-4 bg-white/80 backdrop-blur-md rounded-full shadow-lg text-text-primary hover:bg-primary-button hover:text-white transition-all"
+              >
+                <FaChevronRight size={20} />
+              </motion.button>
+            )}
+          </AnimatePresence>
 
-          {/* Visible Area */}
-          <div className="overflow-hidden">
-            <div 
-              className="flex transition-transform duration-500 ease-out will-change-transform"
-              style={sliderTransform}
+          {/* Slider Content */}
+          <motion.div className="overflow-hidden cursor-grab active:cursor-grabbing">
+            <motion.div 
+              animate={{ x: `-${currentIndex * (100 / itemsToShow)}%` }}
+              transition={{ type: "spring", stiffness: 300, damping: 35 }}
+              className="flex"
             >
               {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard 
+                  key={product.id} 
+                  product={product} 
+                  onClick={() => navigate('/shop')} 
+                />
               ))}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
-
-        {/* Section Footer */}
-        {/* <div className="flex justify-center mt-16">
-          <ShopNowButton />
-        </div> */}
       </div>
     </section>
   );
 };
 
-// Separate ProductCard component with React.memo for optimization
-const ProductCard = React.memo(({ product }) => {
+const ProductCard = React.memo(({ product, onClick }) => {
   return (
-    <div className="w-full md:w-1/3 flex-shrink-0 px-4 flex flex-col items-center">
-      {/* Card Image */}
-      <div className="w-full aspect-[3/4.2] overflow-hidden rounded-[45px] bg-bg-surface shadow-sm">
-        <img 
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true }}
+      onClick={onClick}
+      className="w-full md:w-1/3 flex-shrink-0 px-4 group cursor-pointer"
+    >
+      <div className="relative overflow-hidden rounded-[40px] aspect-[3/4] bg-bg-main shadow-sm">
+        {/* Image with sophisticated zoom */}
+        <motion.img 
           src={product.image} 
           alt={product.title}
-          loading="lazy"
-          decoding="async"
-          className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
+          className="w-full h-full object-cover"
+          whileHover={{ scale: 1.08 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         />
+        
+        {/* Elegant hover overlay */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          whileHover={{ opacity: 1 }}
+          className="absolute inset-0 bg-black/10 backdrop-blur-[2px] flex items-center justify-center"
+        >
+          <span className="bg-white/90 px-6 py-2.5 rounded-full text-[10px] tracking-[0.2em] uppercase font-bold text-text-primary shadow-xl">
+            View Details
+          </span>
+        </motion.div>
       </div>
 
       {/* Product Details */}
       <div className="mt-8 text-center">
-        <h3 className="text-text-primary text-lg tracking-[0.18em] font-serif uppercase mb-1">
+        <h3 className="text-text-primary text-lg tracking-[0.2em] font-serif uppercase mb-2 group-hover:text-primary-button transition-colors">
           {product.title}
         </h3>
-        <p className="text-text-secondary text-sm tracking-widest italic">
-          From Rs.{product.price}
+        <p className="text-text-secondary text-xs tracking-widest font-medium opacity-80">
+          Rs. {product.price}
         </p>
       </div>
-    </div>
+    </motion.div>
   );
 });
-
-ProductCard.displayName = 'ProductCard';
 
 export default ProductSection;
