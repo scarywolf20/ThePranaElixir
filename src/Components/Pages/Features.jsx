@@ -35,7 +35,7 @@ const Features = () => {
   };
 
   return (
-    <section className="w-full py-7 bg-bg-main overflow-hidden">
+    <section className="w-full py-7 bg-bg-surface overflow-hidden">
       <motion.div 
         className="max-w-7xl mx-auto px-6"
         variants={containerVariants}

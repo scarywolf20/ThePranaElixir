@@ -24,7 +24,7 @@ const Navbar = () => {
     { name: 'story', id: '/story' },
     { name: 'shop', id: '/shop', hasDropdown: true },
     { name: 'custom orders', id: '/custom' },
-    { name: 'connect', id: '/contact' },
+    // { name: 'connect', id: '/contact' },
   ];
 
   return (
@@ -43,7 +43,7 @@ const Navbar = () => {
             <Link to="/" className="flex items-center gap-3">
               <img src={logo} alt="Logo" className="h-10 md:h-14 w-auto" />
               <div className="flex flex-col">
-                <span className="text-lg md:text-2xl tracking-[0.15em] font-bold uppercase text-text-primary leading-none font-['Cinzel',serif]">
+                <span className="text-lg md:text-3xl tracking-[0.15em]  uppercase text-text-primary leading-none font-serif">
                   The Prana Elixir
                 </span>
                 <span className="text-[8px] md:text-[10px] tracking-[0.3em] uppercase text-text-secondary mt-1 font-medium">
@@ -96,6 +96,13 @@ const Navbar = () => {
 
             {/* ICONS - Using text-text-primary */}
             <div className="flex items-center gap-3 border-l border-border/20 pl-4">
+              <Link
+                to={user ? "/customer/profile" : "/customer/login"}
+                className="p-2 hover:text-primary-button transition-colors"
+                title={user ? "My Profile" : "Login"}
+              >
+                <FaUser className="text-xl text-text-primary" />
+              </Link>
               <button onClick={() => setIsCartOpen(true)} className="relative p-2 hover:text-primary-button transition-colors">
                 <FaCartShopping className="text-xl text-text-primary" />
                 <span className="absolute top-0 right-0 bg-primary-button text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">

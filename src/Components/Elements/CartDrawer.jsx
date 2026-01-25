@@ -84,7 +84,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
       {/* Drawer Container */}
       <div
-        className={`fixed top-0 right-0 h-full w-full sm:w-[450px] bg-bg-surface shadow-2xl border-l border-border transform transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) z-50 flex flex-col ${
+        className={`fixed top-0 right-0 h-full w-full sm:w-[450px] bg-bg-surface shadow-2xl border-l border-border transform transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) z-100 flex flex-col ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >

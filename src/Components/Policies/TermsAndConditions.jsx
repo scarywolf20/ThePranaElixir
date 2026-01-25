@@ -1,5 +1,9 @@
+import Navbar from "../Pages/Navbar";
+import Footer from "../Pages/Footer";
 export default function TermsAndConditions() {
   return (
+    <div>
+      <Navbar />  
     <div className="min-h-screen bg-bg-main px-6 py-12">
       <div className="max-w-4xl mx-auto bg-bg-surface p-8 rounded-xl border border-border shadow-sm">
         <h1 className="text-3xl font-semibold text-text-primary mb-6">
@@ -46,6 +50,8 @@ export default function TermsAndConditions() {
           the website implies acceptance of the updated terms.
         </p>
       </div>
+    </div>
+    <Footer />
     </div>
   );
 }

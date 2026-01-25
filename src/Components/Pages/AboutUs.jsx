@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 
 const AboutUs = () => {
   // Animation variants for the text reveal
@@ -22,7 +23,7 @@ const AboutUs = () => {
   };
 
   return (
-    <section className="max-w-7xl mx-auto px-6 py-20 md:py-32 font-sans overflow-hidden">
+    <section className="w-full mx-auto px-6 py-20 md:py-32 font-sans overflow-hidden bg-bg-surface">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         
         {/* Left Side: Overlapping Image Grid */}
@@ -46,20 +47,20 @@ const AboutUs = () => {
           </div>
           
           {/* Floating Aesthetic Overlay */}
-          <motion.div 
+          {/* <motion.div 
             initial={{ y: 40, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.8 }}
             className="absolute -bottom-12 right-0 w-1/2 rounded-[2.5rem] overflow-hidden border-[12px] border-white shadow-2xl bg-white z-20"
-          >
-            <div className="aspect-square">
+          > */}
+            {/* <div className="aspect-square">
               <img 
                 src="/product-detail.jpg" 
                 alt="Mindful Craftsmanship" 
                 className="w-full h-full object-cover"
               />
-            </div>
-          </motion.div>
+            </div> */}
+          {/* </motion.div> */}
         </motion.div>
 
         {/* Right Side: Content */}
@@ -88,9 +89,8 @@ const AboutUs = () => {
           <motion.blockquote 
             className="text-xl md:text-2xl font-light leading-relaxed text-text-primary/80 italic font-serif"
           >
-            “All our soaps are mindfully hand-made with cold process technique 
-            using pure plant-based oils and coloured with botanical powders 
-            & naturally occurring clays.”
+            “Prana Elixir was created at the intersection of medical understanding, lived experience, and mindful formulation.
+”
           </motion.blockquote>
 
           {/* Product Features List */}
@@ -121,14 +121,14 @@ const AboutUs = () => {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
           >
-            <button className="group relative overflow-hidden bg-text-primary text-white px-10 py-4 rounded-full transition-all hover:pr-14 active:scale-95 shadow-lg">
+            <Link to="/story" className="group relative overflow-hidden bg-text-primary text-white px-10 py-4 rounded-full transition-all hover:pr-14 active:scale-95 shadow-lg">
               <span className="relative z-10 text-[10px] tracking-[0.3em] uppercase font-bold">Discover More</span>
               <div className="absolute top-1/2 -translate-y-1/2 right-4 opacity-0 group-hover:opacity-100 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
               </div>
-            </button>
+            </Link>
           </motion.div>
         </motion.div>
 

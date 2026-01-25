@@ -1,6 +1,11 @@
+import Navbar from "../Pages/Navbar";
+import Footer from "../Pages/Footer";
 export default function PrivacyPolicy() {
   return (
-    <div className="min-h-screen bg-bg-main px-6 py-12">
+  
+    <div>
+      <Navbar />
+    <div className="min-h-screen bg-bg-main px-4 pt-12 pb-4 ">
       <div className="max-w-4xl mx-auto bg-bg-surface p-8 rounded-xl border border-border shadow-sm">
         <h1 className="text-3xl font-semibold text-text-primary mb-6">
           Privacy Policy
@@ -49,5 +54,10 @@ export default function PrivacyPolicy() {
         </p>
       </div>
     </div>
+      <Footer />
+
+    </div>
+    
+    
   );
 }

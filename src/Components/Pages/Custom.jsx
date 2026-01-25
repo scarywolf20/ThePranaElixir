@@ -1,243 +1,161 @@
-import React, { useRef, useState } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { Mail, MapPin, Phone, Send, ArrowRight } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
+import emailjs from '@emailjs/browser';
+import { Send, Gift, Calendar, Sparkles, CheckCircle } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
 import Footer from '../Pages/Footer';
 
-// Use strict Earthy Theme colors
-const themeColors = {
-  text: '#6C4A40',    // text-text-primary
-  stroke: '#6C4A40',  // matching stroke color
-  bg: '#ECE3D8',      // bg-bg-main
-};
+const Custom = () => {
+  const form = useRef();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSent, setIsSent] = useState(false);
 
-export default function Custom() {
-  const containerRef = useRef(null);
-  const headerRef = useRef(null);
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    message: ''
-  });
-  const [status, setStatus] = useState(''); // 'sending', 'success', 'error'
+  const sendEmail = (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
 
-  // --- 1. SCROLL ANIMATION LOGIC (From your reference) ---
-  const { scrollYProgress } = useScroll({
-    target: headerRef,
-    offset: ["start end", "end start"]
-  });
-
-  // Transform outline to solid fill based on scroll
-  const textFill = useTransform(scrollYProgress, [0.2, 0.6], [0, 1]);
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Replace these with your actual IDs from EmailJS
+    emailjs.sendForm(
+      'service_z3jofzy', 
+      'template_u18wde6', 
+      form.current, 
+      '64vnB1DuhI2UDC7ZX'
+    )
+    .then((result) => {
+        setIsSent(true);
+        setIsSubmitting(false);
+    }, (error) => {
+        console.log(error.text);
+        setIsSubmitting(false);
+        alert("Something went wrong. Please try again.");
+    });
   };
 
-  // --- 2. EMAILJS LOGIC (From your reference) ---
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setStatus('sending');
-
-    try {
-      const emailjs = (await import('@emailjs/browser')).default;
-      
-      await emailjs.send(
-        'service_4cfq9ff',     // Your Service ID
-        'template_3hti6dh',    // Your Template ID
-        {
-          name: formData.name,
-          email: formData.email,
-          message: formData.message
-        },
-        'rLuwajQp5XZU-eq9U'      // Your Public Key
-      );
-
-      setStatus('success');
-      setFormData({ name: '', email: '', message: '' });
-      setTimeout(() => setStatus(''), 5000);
-    } catch (error) {
-      console.error('Error:', error);
-      setStatus('error');
-      setTimeout(() => setStatus(''), 5000);
-    }
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 40 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } }
   };
 
   return (
-    <div className="bg-bg-main min-h-screen flex flex-col">
+    <div className="bg-bg-main min-h-screen flex flex-col font-sans selection:bg-primary-button/20">
       <Navbar />
 
-      <section 
-        id="contact"
-        ref={containerRef}
-        className="flex-1 pt-12 md:pt-20 pb-16 px-4 sm:px-6 md:px-12 font-sans relative overflow-hidden"
-      >
-        <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-start">
-          
-          {/* --- LEFT SIDE: ANIMATED TEXT & INFO --- */}
-          <div className="space-y-12 lg:sticky lg:top-32">
-            <div ref={headerRef} className="relative z-10">
-              {/* Outline Text (Background Layer) */}
-              <h2 
-                className="text-5xl sm:text-7xl md:text-8xl font-serif font-bold uppercase leading-[0.9] tracking-tight"
-                style={{ 
-                  WebkitTextStroke: `1.5px ${themeColors.stroke}`, 
-                  color: "transparent" 
-                }}
-              >
-                We'd Love <br /> To Hear <br /> From You
-              </h2>
-
-              {/* Solid Text (Foreground Layer - Controlled by Scroll) */}
-              <motion.h2 
-                style={{ opacity: textFill, color: themeColors.text }}
-                className="absolute inset-0 text-5xl sm:text-7xl md:text-8xl font-serif font-bold uppercase leading-[0.9] tracking-tight pointer-events-none"
-              >
-                We'd Love <br /> To Hear <br /> From You
-              </motion.h2>
-            </div>
-
-            <div className="space-y-8 pt-4">
-              <p className="text-text-secondary text-lg max-w-md leading-relaxed">
-                Have a question about our products, a custom order, or just want to say hello? Drop us a message and we'll get back to you within 24 hours.
-              </p>
-
-              {/* Contact Details */}
-              <div className="space-y-6">
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="flex items-center gap-4 group cursor-pointer"
-                >
-                  <div className="w-12 h-12 rounded-full bg-bg-surface border border-border flex items-center justify-center text-text-primary group-hover:bg-primary-button group-hover:text-white transition-colors">
-                    <Mail size={20} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase text-text-secondary tracking-widest">Email Us</p>
-                    <a href="mailto:support@store.com" className="text-xl font-serif text-text-primary group-hover:text-primary-button transition-colors">support@store.com</a>
-                  </div>
-                </motion.div>
-
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="flex items-center gap-4 group cursor-pointer"
-                >
-                  <div className="w-12 h-12 rounded-full bg-bg-surface border border-border flex items-center justify-center text-text-primary group-hover:bg-primary-button group-hover:text-white transition-colors">
-                    <Phone size={20} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase text-text-secondary tracking-widest">Call Us</p>
-                    <p className="text-xl font-serif text-text-primary group-hover:text-primary-button transition-colors">+91 98765 43210</p>
-                  </div>
-                </motion.div>
-              </div>
-            </div>
-          </div>
-
-          {/* --- RIGHT SIDE: EARTHY THEMED FORM --- */}
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            viewport={{ once: true }}
-            className="w-full bg-bg-surface p-8 md:p-12 rounded-[2.5rem] shadow-xl border border-border relative"
+      {/* --- HERO SECTION --- */}
+      <section className="relative w-full py-24 md:py-32 bg-bg-surface border-b border-border/10 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6 text-center relative z-10">
+          <motion.span 
+            initial={{ opacity: 0, letterSpacing: "0.2em" }}
+            animate={{ opacity: 1, letterSpacing: "0.5em" }}
+            className="text-[10px] md:text-xs font-bold text-primary-button uppercase block mb-6"
           >
-            {/* Decorative Corner Element */}
-            <div className="absolute top-8 right-8 text-border opacity-50">
-              <Send size={48} strokeWidth={1} />
-            </div>
-
-            <h3 className="text-2xl font-serif text-text-primary mb-8">Send a Message</h3>
-
-            <form onSubmit={handleSubmit} className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase text-text-secondary tracking-widest ml-1">Your Name</label>
-                  <input 
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    placeholder="Jane Doe"
-                    className="w-full bg-bg-main border-b-2 border-border px-4 py-3 text-text-primary outline-none focus:border-primary-button transition-colors placeholder-text-muted/50 rounded-t-lg" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase text-text-secondary tracking-widest ml-1">Your Email</label>
-                  <input 
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    placeholder="jane@example.com"
-                    className="w-full bg-bg-main border-b-2 border-border px-4 py-3 text-text-primary outline-none focus:border-primary-button transition-colors placeholder-text-muted/50 rounded-t-lg" 
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-text-secondary tracking-widest ml-1">Message</label>
-                <textarea
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  required
-                  rows="5" 
-                  placeholder="Tell us about your project or inquiry..."
-                  className="w-full bg-bg-main border-b-2 border-border px-4 py-3 text-text-primary outline-none focus:border-primary-button transition-colors resize-none placeholder-text-muted/50 rounded-t-lg" 
-                />
-              </div>
-
-              <div className="pt-4">
-                <motion.button
-                  type="submit"
-                  disabled={status === 'sending'}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`w-full py-4 rounded-xl bg-primary-button text-white text-lg font-medium flex items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:bg-primary-hover transition-all
-                    ${status === 'sending' ? 'opacity-70 cursor-wait' : ''}`}
-                >
-                  {status === 'sending' ? (
-                    'Sending...'
-                  ) : (
-                    <>
-                      Send Message <ArrowRight size={20} />
-                    </>
-                  )}
-                </motion.button>
-              </div>
-
-              {/* Status Messages */}
-              {status === 'success' && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="bg-success/10 border border-success/30 text-success px-4 py-3 rounded-lg text-center font-medium"
-                >
-                  Thank you! We've received your message.
-                </motion.div>
-              )}
-              {status === 'error' && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="bg-danger/10 border border-danger/30 text-danger px-4 py-3 rounded-lg text-center font-medium"
-                >
-                  Something went wrong. Please try again later.
-                </motion.div>
-              )}
-            </form>
-          </motion.div>
+            Bespoke Creations
+          </motion.span>
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-5xl md:text-7xl font-serif text-text-primary mb-8 tracking-tight"
+          >
+            Custom <span className="italic font-light">Orders</span>
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="max-w-2xl mx-auto text-text-secondary text-lg font-light leading-relaxed"
+          >
+            From intimate weddings to grand corporate celebrations, we craft personalized artisanal luxuries tailored to your unique story.
+          </motion.p>
         </div>
       </section>
-      
+
+      {/* --- FORM SECTION --- */}
+      <section className="py-20 px-6 mb-20">
+        <div className="max-w-4xl mx-auto bg-white rounded-[3rem] shadow-2xl border border-border/20 overflow-hidden grid grid-cols-1 lg:grid-cols-2">
+          
+          {/* Form Side */}
+          <div className="p-10 md:p-14 space-y-8">
+            <h2 className="text-3xl font-serif text-text-primary">Inquiry Form</h2>
+            
+            {!isSent ? (
+              <form ref={form} onSubmit={sendEmail} className="space-y-6">
+                <div className="space-y-1 border-b border-border/40 pb-2">
+                  <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Full Name</label>
+                  <input name="user_name" required type="text" className="w-full bg-transparent outline-none text-text-primary py-1 placeholder:text-border" placeholder="Your name" />
+                </div>
+                
+                <div className="space-y-1 border-b border-border/40 pb-2">
+                  <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Email Address</label>
+                  <input name="user_email" required type="email" className="w-full bg-transparent outline-none text-text-primary py-1 placeholder:text-border" placeholder="hello@example.com" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-1 border-b border-border/40 pb-2">
+                    <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Event Type</label>
+                    <input name="event_type" type="text" className="w-full bg-transparent outline-none text-text-primary py-1" placeholder="e.g. Wedding" />
+                  </div>
+                  <div className="space-y-1 border-b border-border/40 pb-2">
+                    <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Quantity</label>
+                    <input name="quantity" type="number" className="w-full bg-transparent outline-none text-text-primary py-1" placeholder="50+" />
+                  </div>
+                </div>
+
+                <div className="space-y-1 border-b border-border/40 pb-2">
+                  <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Details</label>
+                  <textarea name="message" rows="3" className="w-full bg-transparent outline-none text-text-primary py-1 resize-none" placeholder="Tell us about your vision..." />
+                </div>
+
+                <motion.button 
+                  disabled={isSubmitting}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full bg-text-primary text-white py-4 rounded-2xl flex items-center justify-center gap-3 tracking-[0.2em] uppercase text-xs font-bold transition-all hover:bg-primary-button disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? "Sending..." : "Send Request"} <Send size={14} />
+                </motion.button>
+              </form>
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="h-full flex flex-col items-center justify-center text-center space-y-4 py-10"
+              >
+                <div className="w-20 h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center">
+                  <CheckCircle size={40} />
+                </div>
+                <h3 className="text-2xl font-serif text-text-primary">Thank You!</h3>
+                <p className="text-text-secondary text-sm leading-relaxed">
+                  Your inquiry has been sent. The Prana Team will get back to you shortly.
+                </p>
+                <button 
+                  onClick={() => setIsSent(false)}
+                  className="text-xs font-bold uppercase tracking-widest text-primary-button underline mt-4"
+                >
+                  Send another inquiry
+                </button>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Image/Visual Side */}
+          <div className="hidden lg:block relative bg-bg-surface">
+            <img 
+              src="https://res.cloudinary.com/dslr4xced/image/upload/v1769362029/IMG_0364_ihbenf.jpg" 
+              className="w-full h-full object-cover opacity-90"
+              alt="Custom Packaging"
+            />
+            <div className="absolute inset-0 bg-primary-button/10 mix-blend-multiply" />
+            <div className="absolute bottom-10 left-10 right-10 p-6 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30">
+              <p className="text-white text-xs tracking-widest uppercase font-bold text-center">
+                Handcrafted for your special moments
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <Footer />
     </div>
   );
-}
+};
+
+export default Custom;
