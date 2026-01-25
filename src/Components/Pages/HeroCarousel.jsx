@@ -3,40 +3,39 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ShopNowButton from '../Elements/ShopNowButton';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '../../firebase';
+
 const HeroCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  const [slides, setSlides] = useState([])
+  const [slides, setSlides] = useState([]);
 
   useEffect(() => {
-    const q = query(collection(db, 'hero_slides'), orderBy('createdAt', 'desc'))
+    const q = query(collection(db, 'hero_slides'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snap) => {
       setSlides(
         snap.docs.map((d) => {
-          const data = d.data()
+          const data = d.data();
           return {
             id: d.id,
             title: data.title || '',
             subtitle: data.subtitle || '',
             image: data.imageUrl || '',
-          }
-        }),
-      )
-    })
-    return unsubscribe
-  }, [])
+          };
+        })
+      );
+    });
+    return unsubscribe;
+  }, []);
 
   const effectiveSlides = slides.length
     ? slides
     : [
-        { id: 1, title: "WAX TABLETS", subtitle: "", image: "https://images.unsplash.com/photo-1603006905003-be475563bc59" },
-        { id: 2, title: "SOY CANDLES", subtitle: "", image: "https://images.unsplash.com/photo-1603006905003-be475563bc59" },
-        { id: 3, title: "GENTLE SOAPS", subtitle: "", image: "https://images.unsplash.com/photo-1603006905003-be475563bc59" },
+        { id: 1, title: "Artisan Wellness, Thoughtfully Crafted", image: "https://res.cloudinary.com/dslr4xced/image/upload/v1769348646/tprmqlnyvwvpgixwzpvr.png" },
+        { id: 2, title: "Awaken Your Daily Ritual", image: "https://res.cloudinary.com/dslr4xced/image/upload/v1769348378/kfj9ijvhkzjbzhoslxus.png" },
+        { id: 3, title: "Crafted by Nature", image: "https://res.cloudinary.com/dslr4xced/image/upload/v1769348339/haz9uy1gjvhdmni3bvmw.png" },
       ];
 
-  const safeIndex = effectiveSlides.length ? currentIndex % effectiveSlides.length : 0
-
   useEffect(() => {
+    if (effectiveSlides.length === 0) return;
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % effectiveSlides.length);
     }, 5000);
@@ -44,37 +43,46 @@ const HeroCarousel = () => {
   }, [effectiveSlides.length]);
 
   return (
-    <section className="relative w-full h-[70vh] overflow-hidden">
-      <AnimatePresence mode="wait">
+    <section className="relative w-full h-[70vh] md:h-[75vh] overflow-hidden bg-black">
+      {/* 1. Background Layers (The "Immediate" transition fix) */}
+      <AnimatePresence initial={false}>
         <motion.div
           key={currentIndex}
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.8, ease: "easeInOut" }}
-          className="absolute inset-0 w-full h-full"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
+          className="absolute inset-0 z-0"
         >
-          {/* Slide Image */}
-          <div 
+          {/* Slow Ken Burns Zoom Effect */}
+          <motion.div 
+            initial={{ scale: 1.15 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 6, ease: "easeOut" }}
             className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${effectiveSlides[safeIndex].image})` }}
-          />
+            style={{ backgroundImage: `url(${effectiveSlides[currentIndex].image})` }}
+          >
+            {/* Classy Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
+          </motion.div>
 
-          {/* Text & Button Overlay */}
-          <div className="relative h-full max-w-7xl mx-auto px-12 flex flex-col justify-center items-start">
-            <motion.h2 
-              initial={{ y: 30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.6 }}
-              className="text-white text-6xl md:text-7xl font-serif tracking-[0.15em] mb-10"
-            >
-              {effectiveSlides[safeIndex].title}
-            </motion.h2>
+          {/* 2. Text Content Overlay */}
+          <div className="relative h-full max-w-7xl mx-auto px-6 md:px-12 flex flex-col justify-center items-start">
+            <div className="overflow-hidden">
+              <motion.h2 
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.8, ease: "circOut" }}
+                className="text-white text-3xl md:text-8xl font-serif tracking-[0.2em] mb-8 "
+              >
+                {effectiveSlides[currentIndex].title}
+              </motion.h2>
+            </div>
 
             <motion.div
-              initial={{ y: 30, opacity: 0 }}
+              initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.6 }}
+              transition={{ delay: 0.8, duration: 0.6 }}
             >
               <ShopNowButton />
             </motion.div>
@@ -82,26 +90,37 @@ const HeroCarousel = () => {
         </motion.div>
       </AnimatePresence>
 
-      {/* Navigation Indicators on the Right */}
-      <div className="absolute right-10 top-1/2 -translate-y-1/2 flex flex-col gap-6 z-20">
+      {/* 3. Navigation Indicators (Fixed Classy Alignment) */}
+      <div className="absolute right-6 md:right-10 top-1/2 -translate-y-1/2 flex flex-col gap-8 z-30">
         {effectiveSlides.map((_, index) => (
           <button 
             key={index} 
             onClick={() => setCurrentIndex(index)}
-            className="relative w-4 h-4 flex items-center justify-center group"
+            className="relative w-3 h-3 flex items-center justify-center"
           >
-            {safeIndex === index && (
+            {currentIndex === index && (
               <motion.div 
-                layoutId="activeCircle" 
-                className="absolute w-7 h-7 border-2 border-white rounded-full" 
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                layoutId="activeIndicator" 
+                className="absolute w-8 h-8 border border-white/40 rounded-full" 
+                transition={{ type: "spring", stiffness: 200, damping: 25 }}
               />
             )}
-            <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
-              safeIndex === index ? 'bg-white' : 'bg-white/50 group-hover:bg-white/80'
+            <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${
+              currentIndex === index ? 'bg-white scale-125' : 'bg-white/30 hover:bg-white/60'
             }`} />
           </button>
         ))}
+      </div>
+      
+      {/* Bottom Progress Bar (Extra Classy Touch) */}
+      <div className="absolute bottom-0 left-0 w-full h-[2px] bg-white/10 z-20">
+        <motion.div 
+          key={currentIndex}
+          initial={{ width: 0 }}
+          animate={{ width: "100%" }}
+          transition={{ duration: 5, ease: "linear" }}
+          className="h-full bg-white/50"
+        />
       </div>
     </section>
   );
