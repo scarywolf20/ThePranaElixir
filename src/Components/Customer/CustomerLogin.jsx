@@ -72,7 +72,7 @@ const CustomerLogin = () => {
           {/* LEFT SIDE: Image / Brand Vibe */}
           <div className="hidden md:block w-1/2 relative bg-text-secondary">
             <img 
-              src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?q=80&w=1000&auto=format&fit=crop" 
+              src="https://res.cloudinary.com/dslr4xced/image/upload/v1769363578/IMG_0363_rqysfp.jpg" 
               alt="Aesthetic Interior" 
               className="absolute inset-0 w-full h-full object-cover opacity-90"
             />
@@ -194,7 +194,7 @@ const CustomerLogin = () => {
                 {isLogin ? "Don't have an account yet?" : "Already have an account?"}
                 <button 
                   onClick={() => setIsLogin(!isLogin)}
-                  className="ml-2 font-bold text-text-primary hover:text-primary-button underline decoration-wavy decoration-primary-button/50 underline-offset-4 cursor-pointer transition-colors"
+                  className="ml-2 font-bold text-text-primary hover:text-primary-button underline   underline-offset-4 cursor-pointer transition-colors"
                 >
                   {isLogin ? 'Sign up free' : 'Log in here'}
                 </button>
