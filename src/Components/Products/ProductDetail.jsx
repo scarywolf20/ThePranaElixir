@@ -4,6 +4,7 @@ import { ArrowLeft, Minus, Plus, ShoppingBag, Heart } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
 import { useAuth } from '../../context/useAuth';
 import { useCart } from '../../context/useCart';
+import { useToast } from '../../context/useToast';
 import { db } from '../../firebase';
 import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 
@@ -13,6 +14,7 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const { user } = useAuth();
   const { addItem } = useCart();
+  const { addToast } = useToast();
   const [wishlisted, setWishlisted] = useState(false);
   const [wishlistBusy, setWishlistBusy] = useState(false);
 
@@ -60,13 +62,19 @@ const ProductDetail = () => {
   }, [user, product])
 
   const toggleWishlist = async () => {
-    if (!user || !product) return
+    if (!user) {
+      addToast('Please log in to use wishlist', 'info')
+      navigate('/customer/login')
+      return
+    }
+    if (!product) return
     const productId = String(product.id)
     setWishlistBusy(true)
     try {
       if (wishlisted) {
         await deleteDoc(doc(db, 'users', user.uid, 'wishlist', productId))
         setWishlisted(false)
+        addToast('Removed from wishlist', 'success')
       } else {
         await setDoc(
           doc(db, 'users', user.uid, 'wishlist', productId),
@@ -80,7 +88,11 @@ const ProductDetail = () => {
           { merge: true },
         )
         setWishlisted(true)
+        addToast('Added to wishlist', 'success')
       }
+    } catch (e) {
+      addToast('Wishlist update failed', 'error')
+      throw e
     } finally {
       setWishlistBusy(false)
     }
@@ -100,6 +112,7 @@ const ProductDetail = () => {
 
   const handleAddToCart = async () => {
     if (!user) {
+      addToast('Please log in to add items to cart', 'info')
       navigate('/customer/login')
       return
     }
@@ -154,7 +167,7 @@ const ProductDetail = () => {
                   return (
                     <div key={index} className="flex items-start gap-3 ml-4">
                       <span className="text-primary-button mt-1">•</span>
-                      <span className="opacity-80">{trimmedLine.replace(/^[•\-]\s*/, '')}</span>
+                      <span className="opacity-80">{trimmedLine.replace(/^[•-]\s*/, '')}</span>
                     </div>
                   );
                 }

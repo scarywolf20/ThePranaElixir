@@ -12,6 +12,7 @@ import {
 
 import { db } from '../firebase'
 import { useAuth } from './useAuth'
+import { useToast } from './useToast'
 
 const CartContext = createContext(null)
 
@@ -37,6 +38,7 @@ function writeLocalCart(items) {
 
 export function CartProvider({ children }) {
   const { user } = useAuth()
+  const { addToast } = useToast()
 
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -86,50 +88,60 @@ export function CartProvider({ children }) {
       const productId = String(product?.id || '')
       if (!productId) return
 
-      if (!user) {
-        setItems((prev) => {
-          const existing = prev.find((p) => String(p.productId || p.id) === productId)
-          if (existing) {
-            return prev.map((p) =>
-              String(p.productId || p.id) === productId
-                ? { ...p, quantity: Number(p.quantity || 0) + qty }
-                : p,
-            )
-          }
-          return [
-            ...prev,
-            {
-              id: productId,
-              productId,
-              title: product?.name || product?.title || '',
-              price: Number(product?.price || 0),
-              image: product?.imageUrl || product?.image || '',
-              quantity: qty,
-            },
-          ]
-        })
-        return
+      const title = String(product?.name || product?.title || 'Item')
+
+      try {
+        if (!user) {
+          setItems((prev) => {
+            const existing = prev.find((p) => String(p.productId || p.id) === productId)
+            if (existing) {
+              return prev.map((p) =>
+                String(p.productId || p.id) === productId
+                  ? { ...p, quantity: Number(p.quantity || 0) + qty }
+                  : p,
+              )
+            }
+            return [
+              ...prev,
+              {
+                id: productId,
+                productId,
+                title: product?.name || product?.title || '',
+                price: Number(product?.price || 0),
+                image: product?.imageUrl || product?.image || '',
+                quantity: qty,
+              },
+            ]
+          })
+          addToast(`${title} added to cart`, 'success')
+          return
+        }
+
+        const ref = doc(db, 'users', user.uid, 'cart', productId)
+        const existing = items.find((it) => String(it.id) === productId)
+        const nextQty = (existing?.quantity || 0) + qty
+
+        await setDoc(
+          ref,
+          {
+            productId,
+            title: product?.name || product?.title || '',
+            price: Number(product?.price || 0),
+            image: product?.imageUrl || product?.image || '',
+            quantity: nextQty,
+            updatedAt: serverTimestamp(),
+            ...(existing ? {} : { createdAt: serverTimestamp() }),
+          },
+          { merge: true },
+        )
+
+        addToast(`${title} added to cart`, 'success')
+      } catch (e) {
+        addToast('Failed to add item to cart', 'error')
+        throw e
       }
-
-      const ref = doc(db, 'users', user.uid, 'cart', productId)
-      const existing = items.find((it) => String(it.id) === productId)
-      const nextQty = (existing?.quantity || 0) + qty
-
-      await setDoc(
-        ref,
-        {
-          productId,
-          title: product?.name || product?.title || '',
-          price: Number(product?.price || 0),
-          image: product?.imageUrl || product?.image || '',
-          quantity: nextQty,
-          updatedAt: serverTimestamp(),
-          ...(existing ? {} : { createdAt: serverTimestamp() }),
-        },
-        { merge: true },
-      )
     },
-    [items, user],
+    [addToast, items, user],
   )
 
   const setItemQuantity = useCallback(

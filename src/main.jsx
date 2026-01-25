@@ -5,15 +5,18 @@ import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { CartProvider } from './context/CartContext.jsx'
 import { PromoProvider } from './context/PromoContext.jsx'
+import { ToastProvider } from './context/ToastContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AuthProvider>
-      <CartProvider>
-        <PromoProvider>
-          <App />
-        </PromoProvider>
-      </CartProvider>
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <CartProvider>
+          <PromoProvider>
+            <App />
+          </PromoProvider>
+        </CartProvider>
+      </AuthProvider>
+    </ToastProvider>
   </StrictMode>,
 )

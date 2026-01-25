@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../Pages/Navbar';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/useAuth';
+import { useToast } from '../../context/useToast';
 import { updateProfile } from 'firebase/auth';
 import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs,
@@ -13,6 +14,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+
+void motion;
 
 // --- UTILS ---
 const getInitials = (name, email) => {
@@ -149,8 +152,8 @@ const OrdersTab = ({ orders, loading }) => (
               <p className="text-text-secondary text-xs uppercase tracking-tighter mt-1">{order.date}</p>
             </div>
             <div className="mt-4 md:mt-0 flex items-center gap-6">
-              <span className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                order.status === 'Delivered' ? 'bg-green-50 text-green-600' : 
+              <span className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all
+                ${order.status === 'Delivered' ? 'bg-green-50 text-green-600' : 
                 order.status === 'Shipped' ? 'bg-blue-50 text-blue-600' :
                 order.status === 'Processing' ? 'bg-yellow-50 text-yellow-600' :
                 'bg-orange-50 text-orange-600'
@@ -619,7 +622,8 @@ const WishlistTab = ({ wishlist, loading, onRemove }) => (
 const CustomerProfile = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const navigate = useNavigate();
-  const { user, loading, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
+  const { addToast } = useToast();
   const [profileDoc, setProfileDoc] = useState(null);
   const [addresses, setAddresses] = useState([]);
   const [wishlist, setWishlist] = useState([]);
@@ -730,9 +734,10 @@ const CustomerProfile = () => {
     try {
       await deleteDoc(doc(db, 'users', user.uid, 'wishlist', productId));
       setWishlist(prev => prev.filter(item => item.id !== productId));
+      addToast('Removed from wishlist', 'success');
     } catch (error) {
       console.error('Error removing from wishlist:', error);
-      alert('Failed to remove item. Please try again.');
+      addToast('Failed to remove item. Please try again.', 'error');
     } finally {
       setSaving(false);
     }

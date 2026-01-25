@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Search, Filter, ChevronDown, X, SlidersHorizontal, Heart } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
 import { useAuth } from '../../context/useAuth';
+import { useToast } from '../../context/useToast';
 import { db } from '../../firebase';
 import {
   collection,
@@ -35,6 +36,7 @@ const Shop = () => {
   const PAGE_SIZE = 12;
 
   const { user } = useAuth();
+  const { addToast } = useToast();
   const [wishlistIds, setWishlistIds] = useState(new Set());
   const [wishlistBusyId, setWishlistBusyId] = useState(null);
 
@@ -122,7 +124,10 @@ const Shop = () => {
   const toggleWishlist = async (e, product) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!user) return
+    if (!user) {
+      addToast('Please log in to use wishlist', 'info')
+      return
+    }
 
     const productId = String(product.id)
     setWishlistBusyId(productId)
@@ -134,6 +139,7 @@ const Shop = () => {
           next.delete(productId)
           return next
         })
+        addToast('Removed from wishlist', 'success')
       } else {
         await setDoc(
           doc(db, 'users', user.uid, 'wishlist', productId),
@@ -147,7 +153,11 @@ const Shop = () => {
           { merge: true },
         )
         setWishlistIds((prev) => new Set(prev).add(productId))
+        addToast('Added to wishlist', 'success')
       }
+    } catch (err) {
+      addToast('Wishlist update failed', 'error')
+      throw err
     } finally {
       setWishlistBusyId(null)
     }

@@ -21,14 +21,18 @@ import {
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../../firebase';
+import { useToast } from '../../context/useToast';
 import {
   addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc,
 } from 'firebase/firestore';
+
+void motion;
 
 // --- SUB-COMPONENTS ---
 
 // 1. PRODUCTS MANAGER
 const ProductsManager = () => {
+  const { addToast } = useToast();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -45,7 +49,15 @@ const ProductsManager = () => {
     });
   }, []);
 
-  const handleDelete = async (id) => await deleteDoc(doc(db, 'products', id));
+  const handleDelete = async (id) => {
+    try {
+      await deleteDoc(doc(db, 'products', id));
+      addToast('Product deleted', 'success');
+    } catch (e) {
+      addToast('Failed to delete product', 'error');
+      throw e;
+    }
+  };
   
   const handleSave = async (e) => {
     e.preventDefault();
@@ -61,10 +73,20 @@ const ProductsManager = () => {
       setSaveError('Max 3 best sellers allowed.'); return;
     }
 
-    if (currentProduct.id) await setDoc(doc(db, 'products', currentProduct.id), payload, { merge: true });
-    else await addDoc(collection(db, 'products'), { ...payload, createdAt: serverTimestamp() });
-    
-    setIsEditing(false); setCurrentProduct(null);
+    try {
+      if (currentProduct.id) {
+        await setDoc(doc(db, 'products', currentProduct.id), payload, { merge: true });
+        addToast('Product updated', 'success');
+      } else {
+        await addDoc(collection(db, 'products'), { ...payload, createdAt: serverTimestamp() });
+        addToast('Product added', 'success');
+      }
+
+      setIsEditing(false); setCurrentProduct(null);
+    } catch (e) {
+      addToast('Failed to save product', 'error');
+      throw e;
+    }
   };
 
   const uploadToCloudinary = async (file) => {
@@ -185,6 +207,7 @@ const ProductsManager = () => {
 
 // 2. PROMO MANAGER
 const PromoManager = () => {
+  const { addToast } = useToast();
   const [form, setForm] = useState({ enabled: true, text: "", code: "", discountType: "percentage", discountValue: 10 });
   const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false);
 
@@ -198,8 +221,15 @@ const PromoManager = () => {
 
   const handleSave = async (e) => {
     e.preventDefault(); setSaving(true);
-    await setDoc(doc(db, 'settings', 'promo'), { ...form, code: form.code.trim().toUpperCase(), updatedAt: serverTimestamp() }, { merge: true });
-    setSaving(false);
+    try {
+      await setDoc(doc(db, 'settings', 'promo'), { ...form, code: form.code.trim().toUpperCase(), updatedAt: serverTimestamp() }, { merge: true });
+      addToast('Promo updated', 'success');
+    } catch (e) {
+      addToast('Failed to update promo', 'error');
+      throw e;
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -327,6 +357,7 @@ const OrdersManager = () => {
 
 // 4. HERO MANAGER (Simplified for brevity, similar styling applied)
 const HeroManager = () => {
+  const { addToast } = useToast();
   const [slides, setSlides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -371,18 +402,31 @@ const HeroManager = () => {
       updatedAt: serverTimestamp(),
     };
 
-    if (currentSlide.id) {
-      await setDoc(doc(db, 'hero_slides', currentSlide.id), payload, { merge: true });
-    } else {
-      await addDoc(collection(db, 'hero_slides'), { ...payload, createdAt: serverTimestamp() });
+    try {
+      if (currentSlide.id) {
+        await setDoc(doc(db, 'hero_slides', currentSlide.id), payload, { merge: true });
+        addToast('Hero slide updated', 'success');
+      } else {
+        await addDoc(collection(db, 'hero_slides'), { ...payload, createdAt: serverTimestamp() });
+        addToast('Hero slide added', 'success');
+      }
+      setIsEditing(false);
+      setCurrentSlide(null);
+    } catch (e) {
+      addToast('Failed to save hero slide', 'error');
+      throw e;
     }
-    setIsEditing(false);
-    setCurrentSlide(null);
   };
 
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this slide?")) {
-      await deleteDoc(doc(db, 'hero_slides', id));
+      try {
+        await deleteDoc(doc(db, 'hero_slides', id));
+        addToast('Hero slide deleted', 'success');
+      } catch (e) {
+        addToast('Failed to delete hero slide', 'error');
+        throw e;
+      }
     }
   };
 
@@ -513,6 +557,7 @@ const HeroManager = () => {
 
 // 5. TESTIMONIALS (Similar Styling)
 const TestimonialsManager = () => {
+  const { addToast } = useToast();
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -536,18 +581,31 @@ const TestimonialsManager = () => {
       updatedAt: serverTimestamp(),
     };
 
-    if (currentTestimonial.id) {
-      await setDoc(doc(db, 'testimonials', currentTestimonial.id), payload, { merge: true });
-    } else {
-      await addDoc(collection(db, 'testimonials'), { ...payload, createdAt: serverTimestamp() });
+    try {
+      if (currentTestimonial.id) {
+        await setDoc(doc(db, 'testimonials', currentTestimonial.id), payload, { merge: true });
+        addToast('Testimonial updated', 'success');
+      } else {
+        await addDoc(collection(db, 'testimonials'), { ...payload, createdAt: serverTimestamp() });
+        addToast('Testimonial added', 'success');
+      }
+      setIsEditing(false);
+      setCurrentTestimonial(null);
+    } catch (e) {
+      addToast('Failed to save testimonial', 'error');
+      throw e;
     }
-    setIsEditing(false);
-    setCurrentTestimonial(null);
   };
 
   const handleDelete = async (id) => {
     if (window.confirm("Delete this review?")) {
-      await deleteDoc(doc(db, 'testimonials', id));
+      try {
+        await deleteDoc(doc(db, 'testimonials', id));
+        addToast('Testimonial deleted', 'success');
+      } catch (e) {
+        addToast('Failed to delete testimonial', 'error');
+        throw e;
+      }
     }
   };
 
@@ -713,12 +771,12 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <main className="flex-1 ml-72 p-10 overflow-y-auto h-screen custom-scrollbar">
         {/* Top Bar */}
-        <header className="flex justify-end mb-10">
+        {/* <header className="flex justify-end mb-10">
           <div className="bg-white border border-border/40 rounded-full px-5 py-3 flex items-center gap-3 text-text-secondary w-80 shadow-sm focus-within:shadow-md transition-shadow">
             <Search size={18} className="opacity-40" />
             <input placeholder="Search database..." className="bg-transparent border-none outline-none text-xs font-medium w-full text-text-primary" />
           </div>
-        </header>
+        </header> */}
 
         {/* Dynamic View */}
         <AnimatePresence mode="wait">
