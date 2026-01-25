@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
+    "@fontsource/cinzel": "^5.2.8",
     "@tailwindcss/vite": "^4.1.18",
     "firebase": "^12.8.0",
     "framer-motion": "^12.26.2",

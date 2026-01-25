@@ -1,39 +1,23 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaUser } from "react-icons/fa"
-// import { FaSearch } from "react-icons/fa";
-import { FaCartShopping } from "react-icons/fa6";
-import { FaInstagram } from "react-icons/fa6";
-import { FaWhatsapp } from "react-icons/fa6";
+import { motion, AnimatePresence } from 'framer-motion';
+import { FaUser, FaBars, FaTimes, FaChevronDown } from "react-icons/fa";
+import { FaCartShopping, FaInstagram, FaWhatsapp } from "react-icons/fa6";
 import CartDrawer from "../Elements/CartDrawer";
+import logo from "../../assets/logo.svg";
 import { useAuth } from '../../context/useAuth';
 import { useCart } from '../../context/useCart';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../../firebase';
 
 const Navbar = () => {
   const [isShopOpen, setIsShopOpen] = useState(false);
+  const [isMobileShopOpen, setIsMobileShopOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
   const location = useLocation();
   const activeTab = location.pathname;
   const { user } = useAuth();
   const { totalQuantity } = useCart();
-
-  const [promoText, setPromoText] = useState("10% Off On Your First Order. Use Code 'HAPPY'");
-
-  React.useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'settings', 'promo'), (snap) => {
-      const data = snap.data()
-      if (data?.enabled === false) {
-        setPromoText('')
-        return
-      }
-      if (typeof data?.text === 'string') {
-        setPromoText(data.text)
-      }
-    })
-    return unsub
-  }, [])
 
   const navLinks = [
     { name: 'home', id: '/' },
@@ -45,147 +29,145 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="w-full bg-bg-surface font-sans">
-        {/* 1. Promo Bar */}
-        {promoText ? (
-          <div className="w-full bg-text-primary text-bg-surface py-1.5 text-center text-[10px] sm:text-xs tracking-[0.25em] uppercase">
-            {promoText}
-          </div>
-        ) : null}
+      {/* 1. Promo Bar - Uses your brand brown */}
+      <div className="w-full bg-[#5D4037] text-white py-2 text-center text-[10px] tracking-[0.2em] uppercase">
+        10% Off On Your First Order. Use Code 'HAPPY'
+      </div>
 
-        {/* 2. Logo Section */}
-        <div className="flex justify-center py-4">
-          <Link to="/" className="text-3xl md:text-4xl tracking-[0.35em] text-text-primary font-light hover:opacity-80 transition-opacity">
-            The Prana Elixir
-          </Link>
-        </div>
-
-        {/* 3. Divider Dots */}
-        <div 
-          className="w-full h-[1px]" 
-          style={{
-            backgroundImage: `linear-gradient(to right, #CBBBAA 25%, transparent 25%)`,
-            backgroundSize: '20px 1px', 
-            backgroundRepeat: 'repeat-x'
-          }}
-        />
-
-        {/* 4. Navigation Links Row */}
-        <div className="max-w-7xl mx-auto px-8 flex items-center justify-between py-3">
+      {/* 2. Sticky Navbar - Uses your Surface color */}
+      <nav className="w-full bg-bg-surface sticky top-0 z-[100] border-b border-border/10 shadow-sm">
+        <div className="w-full px-4 md:px-10 py-4 flex items-center justify-between">
           
-          {/* Socials */}
-          <div className="flex gap-6 text-icon">
-            <button className="hover:text-primary-button cursor-pointer transition-colors">
-              <FaInstagram className="text-xl" />
-            </button>
-            <button className="hover:text-primary-button cursor-pointer transition-colors">
-              <FaWhatsapp className="text-xl" />
-            </button>
+          {/* LOGO SECTION */}
+          <div className="flex-shrink-0">
+            <Link to="/" className="flex items-center gap-3">
+              <img src={logo} alt="Logo" className="h-10 md:h-14 w-auto" />
+              <div className="flex flex-col">
+                <span className="text-lg md:text-2xl tracking-[0.15em] font-bold uppercase text-text-primary leading-none font-['Cinzel',serif]">
+                  The Prana Elixir
+                </span>
+                <span className="text-[8px] md:text-[10px] tracking-[0.3em] uppercase text-text-secondary mt-1 font-medium">
+                  Pure Vitality in Every Drop
+                </span>
+              </div>
+            </Link>
           </div>
 
-          {/* Center Menu */}
-          <ul className="flex items-center gap-10">
-            {navLinks.map((link) => {
-              const isActive = activeTab === link.id;
-              
-              return (
-                <li key={link.id} className="relative group">
-                  {link.hasDropdown ? (
-                    // RENDER AS BUTTON (For Dropdowns)
-                    <button
-                      onMouseEnter={() => setIsShopOpen(true)}
-                      className={`
-                        relative pb-1 text-sm tracking-[0.2em] uppercase font-medium transition-colors cursor-pointer
-                        hover:text-primary-button
-                        ${activeTab === link.id ? 'text-text-primary' : 'text-text-secondary'}
-                      `}
-                    >
-                      <span className="flex items-center">
-                        {link.name}
-                        <svg className={`ml-1.5 w-3.5 h-3.5 transition-transform duration-300 ${isShopOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </span>
-                    </button>
-                  ) : (
-                    // RENDER AS LINK (For Routes)
-                    <Link
-                      to={link.id}
-                      className={`
-                        relative pb-1 text-sm tracking-[0.2em] uppercase font-medium transition-colors cursor-pointer inline-block
-                        hover:text-primary-button
-                        ${isActive ? 'text-text-primary' : 'text-text-secondary'}
-                      `}
-                    >
-                      {link.name}
-                    </Link>
+          <div className="flex items-center gap-4 md:gap-8">
+            {/* DESKTOP LINKS - Uses text-text-primary/secondary */}
+            <ul className="hidden lg:flex items-center gap-8">
+              {navLinks.map((link) => (
+                <li 
+                  key={link.id} 
+                  className="relative"
+                  onMouseEnter={() => link.hasDropdown && setIsShopOpen(true)}
+                  onMouseLeave={() => link.hasDropdown && setIsShopOpen(false)}
+                >
+                  <Link
+                    to={link.id}
+                    className={`text-[15px] tracking-[0.15em] uppercase font-semibold py-2 transition-colors 
+                      ${activeTab === link.id ? 'text-text-primary' : 'text-text-secondary hover:text-primary-button'}`}
+                  >
+                    {link.name}
+                  </Link>
+                  {activeTab === link.id && (
+                    <motion.div layoutId="underline" className="absolute bottom-0 left-0 w-full h-[2px] bg-text-primary" />
                   )}
-
-                  {/* Persistent Underline */}
-                  <div className={`
-                    absolute -bottom-1 left-0 h-[1.5px] bg-text-primary transition-all duration-300
-                    ${isActive ? 'w-full opacity-100' : 'w-0 group-hover:w-full group-hover:opacity-100'}
-                  `} />
-
-                  {/* Shop Dropdown */}
-                  {link.hasDropdown && isShopOpen && (
-                    <div 
-                      onMouseLeave={() => setIsShopOpen(false)}
-                      className="absolute left-1/2 -translate-x-1/2 mt-4 w-60 bg-bg-surface border border-border rounded-2xl shadow-2xl z-50 py-5"
-                    >
-                      {[
-                        'gentle habits soaps', 'core collection', 'soy wax candles', 
-                        'gift boxes', 'wax tablets', 'workshops'
-                      ].map((item) => (
-                        <a 
-                          key={item} 
-                          href="/shop" 
-                          className="block px-8 py-2.5 text-text-primary lowercase text-base font-light hover:bg-bg-section hover:text-primary-button transition-colors"
-                        >
-                          {item}
-                        </a>
-                      ))}
-                    </div>
-                  )}
+                  
+                  <AnimatePresence>
+                    {link.hasDropdown && isShopOpen && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }} 
+                        animate={{ opacity: 1, y: 0 }} 
+                        exit={{ opacity: 0, y: 10 }} 
+                        className="absolute top-full right-0 mt-2 w-56 bg-bg-surface shadow-xl border border-border/20 py-4 z-[110]"
+                      >
+                        {['Soaps', 'Candles', 'Wax Tablets', 'Gift Boxes'].map((item) => (
+                          <Link key={item} to="/shop" className="block px-6 py-2 text-sm text-text-primary hover:bg-bg-section hover:text-primary-button transition-colors">
+                            {item}
+                          </Link>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </li>
-              );
-            })}
-          </ul>
+              ))}
+            </ul>
 
-          {/* Action Icons */}
-          <div className="flex gap-6 text-text-primary">
-            {/* <button className="hover:text-primary-button cursor-pointer transition-all hover:scale-105">
-              <FaSearch className="text-xl" />
-            </button> */}
-            {user ? (
-              <Link 
-                to="/customer/profile" 
-                className="hover:text-primary-button cursor-pointer transition-all hover:scale-105 inline-block"
-                title="My Profile"
-              >
-                <FaUser className="text-xl" />
-              </Link>
-            ) : (
-              <Link 
-                to="/customer/login" 
-                className="hover:text-primary-button cursor-pointer transition-all hover:scale-105 inline-block"
-                title="Login"
-              >
-                <FaUser className="text-xl" />
-              </Link>
-            )}
-            <button 
-              onClick={() => setIsCartOpen(true)}
-              className="relative hover:text-primary-button cursor-pointer transition-all hover:scale-105"
-            >
-              <FaCartShopping className="text-xl" />
-              {/* Optional: Cart badge */}
-              <span className="absolute -top-2 -right-2 bg-primary-button text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                {totalQuantity}
-              </span>
-            </button>
+            {/* ICONS - Using text-text-primary */}
+            <div className="flex items-center gap-3 border-l border-border/20 pl-4">
+              <button onClick={() => setIsCartOpen(true)} className="relative p-2 hover:text-primary-button transition-colors">
+                <FaCartShopping className="text-xl text-text-primary" />
+                <span className="absolute top-0 right-0 bg-primary-button text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  {totalQuantity}
+                </span>
+              </button>
+              <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 text-2xl text-text-primary">
+                <FaBars />
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* MOBILE MENU - Colored specifically for your brand */}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.div 
+              initial={{ x: '100%' }} 
+              animate={{ x: 0 }} 
+              exit={{ x: '100%' }}
+              transition={{ type: 'tween', duration: 0.3 }}
+              className="fixed inset-0 bg-bg-surface z-[200] flex flex-col p-8 overflow-y-auto"
+            >
+              <div className="flex justify-between items-center mb-10">
+                <span className="text-xs tracking-[0.3em] font-bold uppercase text-text-secondary opacity-60">Menu</span>
+                <button onClick={() => setIsMobileMenuOpen(false)} className="text-3xl text-text-primary p-2"><FaTimes /></button>
+              </div>
+
+              <div className="flex flex-col gap-8">
+                {navLinks.map((link) => (
+                  <div key={link.id} className="flex flex-col border-b border-border/10 pb-4">
+                    <div className="flex justify-between items-center">
+                      <Link 
+                        to={link.id} 
+                        onClick={() => !link.hasDropdown && setIsMobileMenuOpen(false)}
+                        className={`text-2xl tracking-tight font-medium uppercase ${activeTab === link.id ? 'text-primary-button' : 'text-text-primary'}`}
+                      >
+                        {link.name}
+                      </Link>
+                      {link.hasDropdown && (
+                        <button onClick={() => setIsMobileShopOpen(!isMobileShopOpen)} className="p-2 text-text-primary">
+                          <FaChevronDown className={`transition-transform duration-300 ${isMobileShopOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                      )}
+                    </div>
+                    
+                    {link.hasDropdown && isMobileShopOpen && (
+                      <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} className="mt-4 flex flex-col gap-4 pl-4 overflow-hidden border-l border-border/20">
+                        {['Soaps', 'Candles', 'Wax Tablets', 'Gift Boxes'].map(sub => (
+                          <Link key={sub} to="/shop" onClick={() => setIsMobileMenuOpen(false)} className="text-lg text-text-secondary lowercase hover:text-primary-button">
+                            {sub}
+                          </Link>
+                        ))}
+                      </motion.div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Bottom Mobile Section */}
+              <div className="mt-auto pt-10 border-t border-border/10 flex flex-col gap-6">
+                <Link to={user ? "/customer/profile" : "/customer/login"} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-4 text-xl text-text-primary font-medium">
+                  <FaUser /> {user ? "My Profile" : "Sign In"}
+                </Link>
+                <div className="flex gap-8 text-2xl text-text-secondary">
+                  <a href="#" className="hover:text-primary-button transition-colors"><FaInstagram /></a>
+                  <a href="#" className="hover:text-primary-button transition-colors"><FaWhatsapp /></a>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
 
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />

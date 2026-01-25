@@ -86,6 +86,7 @@ function AdminGuard({ children }) {
 
 function App() {
   return (
+    <div className='relative'>
     <Router>
       <ScrollToTop />
       <Routes>
@@ -140,6 +141,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
+    </div>
   )
 }
 
