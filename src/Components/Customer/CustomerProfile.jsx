@@ -145,7 +145,7 @@ const OrdersTab = ({ orders, loading }) => (
         <div key={order.id} className="group bg-white border border-border/60 rounded-2xl p-6 hover:shadow-xl transition-all duration-500">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-border/30 pb-4">
             <div>
-              <span className="font-serif text-xl text-text-primary">{order.id}</span>
+              <span className=" text-xl text-text-primary">{order.id}</span>
               <p className="text-text-secondary text-xs uppercase tracking-tighter mt-1">{order.date}</p>
             </div>
             <div className="mt-4 md:mt-0 flex items-center gap-6">

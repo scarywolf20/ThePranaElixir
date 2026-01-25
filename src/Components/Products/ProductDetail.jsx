@@ -144,9 +144,29 @@ const ProductDetail = () => {
 
             <div className="h-px bg-border w-full"></div>
 
-            <p className="text-text-primary leading-relaxed opacity-80">
-              {product.description} This item is crafted with care and attention to detail, ensuring it fits perfectly into your lifestyle. Made from high-quality materials that are designed to last.
-            </p>
+            <div className="text-text-primary leading-relaxed space-y-4">
+              {product.description.split('\n').map((line, index) => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) return null;
+                
+                // Check if it's a bullet point
+                if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
+                  return (
+                    <div key={index} className="flex items-start gap-3 ml-4">
+                      <span className="text-primary-button mt-1">•</span>
+                      <span className="opacity-80">{trimmedLine.replace(/^[•\-]\s*/, '')}</span>
+                    </div>
+                  );
+                }
+                
+                // Regular paragraph
+                return (
+                  <p key={index} className="opacity-80">
+                    {trimmedLine}
+                  </p>
+                );
+              })}
+            </div>
 
             {/* Quantity Selector */}
             <div className="space-y-3">

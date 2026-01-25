@@ -7,6 +7,7 @@ import CartDrawer from "../Elements/CartDrawer";
 import logo from "../../assets/logo.svg";
 import { useAuth } from '../../context/useAuth';
 import { useCart } from '../../context/useCart';
+import { usePromo } from '../../context/usePromo';
 
 const Navbar = () => {
   const [isShopOpen, setIsShopOpen] = useState(false);
@@ -18,6 +19,7 @@ const Navbar = () => {
   const activeTab = location.pathname;
   const { user } = useAuth();
   const { totalQuantity } = useCart();
+  const { promoText } = usePromo();
 
   const navLinks = [
     { name: 'home', id: '/' },
@@ -30,9 +32,11 @@ const Navbar = () => {
   return (
     <>
       {/* 1. Promo Bar - Uses your brand brown */}
-      <div className="w-full bg-[#5D4037] text-white py-2 text-center text-[10px] tracking-[0.2em] uppercase">
-        10% Off On Your First Order. Use Code 'HAPPY'
-      </div>
+      {promoText ? (
+        <div className="w-full bg-[#5D4037] text-white py-2 text-center text-[10px] tracking-[0.2em] uppercase">
+          {promoText}
+        </div>
+      ) : null}
 
       {/* 2. Sticky Navbar - Uses your Surface color */}
       <nav className="w-full bg-bg-surface sticky top-0 z-[100] border-b border-border/10 shadow-sm">

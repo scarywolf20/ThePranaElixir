@@ -44,8 +44,8 @@ const HeroCarousel = () => {
 
   return (
     <section className="relative w-full h-[70vh] md:h-[75vh] overflow-hidden bg-black">
-      {/* 1. Background Layers (The "Immediate" transition fix) */}
-      <AnimatePresence initial={false}>
+      {/* Set initial={true} to trigger animations on first mount */}
+      <AnimatePresence initial={true}>
         <motion.div
           key={currentIndex}
           initial={{ opacity: 0 }}
@@ -54,7 +54,9 @@ const HeroCarousel = () => {
           transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
           className="absolute inset-0 z-0"
         >
-          {/* Slow Ken Burns Zoom Effect */}
+          {/* To fix the first-load animation:
+            We ensure scale starts at 1.15 and moves to 1 immediately on mount.
+          */}
           <motion.div 
             initial={{ scale: 1.15 }}
             animate={{ scale: 1 }}
@@ -62,11 +64,9 @@ const HeroCarousel = () => {
             className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: `url(${effectiveSlides[currentIndex].image})` }}
           >
-            {/* Classy Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
           </motion.div>
 
-          {/* 2. Text Content Overlay */}
           <div className="relative h-full max-w-7xl mx-auto px-6 md:px-12 flex flex-col justify-center items-start">
             <div className="overflow-hidden">
               <motion.h2 
@@ -90,7 +90,6 @@ const HeroCarousel = () => {
         </motion.div>
       </AnimatePresence>
 
-      {/* 3. Navigation Indicators (Fixed Classy Alignment) */}
       <div className="absolute right-6 md:right-10 top-1/2 -translate-y-1/2 flex flex-col gap-8 z-30">
         {effectiveSlides.map((_, index) => (
           <button 
@@ -112,7 +111,6 @@ const HeroCarousel = () => {
         ))}
       </div>
       
-      {/* Bottom Progress Bar (Extra Classy Touch) */}
       <div className="absolute bottom-0 left-0 w-full h-[2px] bg-white/10 z-20">
         <motion.div 
           key={currentIndex}

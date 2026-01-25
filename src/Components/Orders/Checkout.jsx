@@ -15,6 +15,7 @@ import {
 import Navbar from '../Pages/Navbar';
 import { useAuth } from '../../context/useAuth';
 import { useCart } from '../../context/useCart';
+import { usePromo } from '../../context/usePromo';
 import { httpsCallable } from 'firebase/functions';
 import {
   collection,
@@ -28,6 +29,7 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { items: cartItems, subtotal: cartSubtotal, clearCart } = useCart();
+  const { promoCoupon } = usePromo();
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
@@ -50,9 +52,17 @@ const Checkout = () => {
   const [paymentError, setPaymentError] = useState('');
 
   const validCoupons = {
+    ...(promoCoupon?.code
+      ? {
+          [promoCoupon.code]: {
+            discount: promoCoupon.discount,
+            type: promoCoupon.type,
+          },
+        }
+      : {}),
     'HAPPY': { discount: 10, type: 'percentage' },
     'SAVE20': { discount: 20, type: 'percentage' },
-    'FLAT100': { discount: 100, type: 'fixed' }
+    'FLAT100': { discount: 100, type: 'fixed' },
   };
 
   const shipping = 0;

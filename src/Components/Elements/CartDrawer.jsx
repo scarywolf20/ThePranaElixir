@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Plus, Minus, ShoppingBag, Trash2, ArrowRight, Tag, Check } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useCart } from '../../context/useCart'
+import { usePromo } from '../../context/usePromo'
 
 const CartDrawer = ({ isOpen, onClose }) => {
   const [couponCode, setCouponCode] = useState('')
@@ -10,11 +11,20 @@ const CartDrawer = ({ isOpen, onClose }) => {
   const [couponError, setCouponError] = useState('')
   const [showCouponInput, setShowCouponInput] = useState(false)
   const { items: cartItems, setItemQuantity, removeItem: removeCartItem } = useCart()
+  const { promoCoupon } = usePromo()
 
   const validCoupons = {
+    ...(promoCoupon?.code
+      ? {
+          [promoCoupon.code]: {
+            discount: promoCoupon.discount,
+            type: promoCoupon.type,
+          },
+        }
+      : {}),
     'HAPPY': { discount: 10, type: 'percentage' },
     'SAVE20': { discount: 20, type: 'percentage' },
-    'FLAT100': { discount: 100, type: 'fixed' }
+    'FLAT100': { discount: 100, type: 'fixed' },
   }
 
   useEffect(() => {
