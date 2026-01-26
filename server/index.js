@@ -184,6 +184,11 @@ app.post('/shiprocket/create', requireFirebaseAuth, async (req, res) => {
 
     const order = { id: snap.id, ...snap.data() }
 
+    console.log('--- DEBUG SHIPROCKET AUTH ---');
+    console.log('Order ID:', order.id);
+    console.log('Order User ID:', order.userId); // This is likely undefined/null
+    console.log('Request User UID:', req.user.uid);
+
     // Only allow the owner (or admins if you add claims later)
     if (String(order.userId || '') !== String(req.user.uid || '')) {
       return res.status(403).json({
@@ -223,6 +228,7 @@ app.post('/shiprocket/create', requireFirebaseAuth, async (req, res) => {
       raw: data,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     }
+    
 
     await orderRef.set(
       {
@@ -235,6 +241,12 @@ app.post('/shiprocket/create', requireFirebaseAuth, async (req, res) => {
 
     return res.json({ ok: true, shiprocket })
   } catch (e) {
+    // <--- ADD THESE 3 LINES TO DEBUG ---
+    console.log("========================================");
+    console.error("SHIPROCKET API ERROR DETAILS:", JSON.stringify(e.response?.data || e.message, null, 2));
+    console.log("========================================");
+    // -----------------------------------
+
     const details = e?.details || null
     const msg = e?.response?.data || e?.message || 'Unknown error'
     const status = e?.response?.status || 500
