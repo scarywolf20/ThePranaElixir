@@ -195,7 +195,7 @@ We prioritise care, responsibility, and skin respect.
             </p>
             <div className="pt-6">
                <div className="w-10 h-[1px] bg-border mx-auto mb-6" />
-               <p className="font-serif text-2xl text-primary-button">The Prana Team</p>
+               <p className="font-serif text-2xl text-primary-button">The Prana Elixir Team</p>
             </div>
           </div>
         </motion.div>
