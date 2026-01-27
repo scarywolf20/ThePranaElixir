@@ -96,7 +96,7 @@ function App() {
             <Navbar />
             <HeroCarousel />
             <Features />
-            <ProductsSection />
+            {/* <ProductsSection /> */}
             <AboutUs />
             <BestSellers />
             <Testimonials />
