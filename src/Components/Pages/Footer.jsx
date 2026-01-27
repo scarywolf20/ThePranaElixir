@@ -45,10 +45,10 @@ const Footer = () => {
           
           {/* Social Icons for mobile/desktop integrated */}
           <div className="flex items-center gap-6 pt-2">
-            <motion.a whileHover={{ y: -3 }} href="#" className="p-2 border border-white/20 rounded-full hover:bg-white hover:text-[#5D4037] transition-all">
+            <motion.a whileHover={{ y: -3 }} href="https://www.instagram.com/thepranaelixir?igsh=emhuNzZyd3I3Y2J0&utm_source=qr" className="p-2 border border-white/20 rounded-full hover:bg-white hover:text-[#5D4037] transition-all">
               <FaInstagram size={18} />
             </motion.a>
-            <motion.a whileHover={{ y: -3 }} href="#" className="p-2 border border-white/20 rounded-full hover:bg-white hover:text-[#5D4037] transition-all">
+            <motion.a whileHover={{ y: -3 }} href="https://api.whatsapp.com/send/?phone=917709979753&text&type=phone_number&app_absent=0" className="p-2 border border-white/20 rounded-full hover:bg-white hover:text-[#5D4037] transition-all">
               <FaWhatsapp size={18} />
             </motion.a>
           </div>
@@ -62,6 +62,7 @@ const Footer = () => {
             <li><a href="/story" className="hover:text-white/60 transition-colors">Story</a></li>
             <li><a href="/shop" className="hover:text-white/60 transition-colors">Shop All</a></li>
             <li><a href="/contact" className="hover:text-white/60 transition-colors">Connect</a></li>
+            <li><a href="/admin/login" className="hover:text-white/60 transition-colors">Admin</a></li>
           </ul>
         </motion.div>
 

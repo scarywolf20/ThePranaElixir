@@ -27,6 +27,10 @@
 }
 
 @layer base {
+  html,
+  body {
+    overflow-x: hidden;
+  }
   body {
     @apply bg-bg-main text-text-primary;
   }
