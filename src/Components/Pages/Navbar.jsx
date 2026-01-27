@@ -40,24 +40,24 @@ const Navbar = () => {
 
       {/* 2. Sticky Navbar - Uses your Surface color */}
       <nav className="w-full bg-bg-surface sticky top-0 z-[100] border-b border-border/10 shadow-sm">
-        <div className="w-full px-4 md:px-10 py-4 flex items-center justify-between">
+        <div className="w-full px-3 sm:px-4 md:px-10 py-4 flex items-center justify-between min-w-0">
           
           {/* LOGO SECTION */}
-          <div className="flex-shrink-0">
-            <Link to="/" className="flex items-center gap-3">
+          <div className="flex-shrink min-w-0">
+            <Link to="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
               <img src={logo} alt="Logo" className="h-10 md:h-14 w-auto" />
-              <div className="flex flex-col">
-                <span className="text-lg md:text-3xl tracking-[0.15em]  uppercase text-text-primary leading-none font-serif">
+              <div className="flex flex-col min-w-0 overflow-hidden">
+                <span className="text-sm sm:text-lg md:text-3xl tracking-[0.08em] sm:tracking-[0.15em] uppercase text-text-primary leading-none font-serif whitespace-normal">
                   The Prana Elixir
                 </span>
-                <span className="text-[8px] md:text-[10px] tracking-[0.3em] uppercase text-text-secondary mt-1 font-medium">
+                <span className="text-[7px] sm:text-[8px] md:text-[10px] tracking-[0.18em] sm:tracking-[0.25em] uppercase text-text-secondary mt-1 font-medium whitespace-normal">
                   Pure Vitality in Every Drop
                 </span>
               </div>
             </Link>
           </div>
 
-          <div className="flex items-center gap-4 md:gap-8">
+          <div className="flex items-center gap-2 sm:gap-4 md:gap-8 flex-shrink-0">
             {/* DESKTOP LINKS - Uses text-text-primary/secondary */}
             <ul className="hidden lg:flex items-center gap-8">
               {navLinks.map((link) => (
@@ -99,10 +99,10 @@ const Navbar = () => {
             </ul>
 
             {/* ICONS - Using text-text-primary */}
-            <div className="flex items-center gap-3 border-l border-border/20 pl-4">
+            <div className="flex items-center gap-2 sm:gap-3 border-l border-border/20 pl-2 sm:pl-4">
               <Link
                 to={user ? "/customer/profile" : "/customer/login"}
-                className="p-2 hover:text-primary-button transition-colors"
+                className="hidden sm:block p-2 hover:text-primary-button transition-colors"
                 title={user ? "My Profile" : "Login"}
               >
                 <FaUser className="text-xl text-text-primary" />
