@@ -1,39 +1,142 @@
-import React, { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import emailjs from '@emailjs/browser';
-import { Send, Gift, Calendar, Sparkles, CheckCircle } from 'lucide-react';
+import { Send, Gift, CheckCircle, Package, Plus, X, ShoppingBag } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
 import Footer from '../Pages/Footer';
+import { db } from '../../firebase';
+import { doc, onSnapshot, collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { useCart } from '../../context/useCart';
+import { useToast } from '../../context/useToast';
 
 const Custom = () => {
-  const form = useRef();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSent, setIsSent] = useState(false);
+  const [activeTab, setActiveTab] = useState('builder'); // 'builder' | 'inquiry'
+  const [combosConfig, setCombosConfig] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const sendEmail = (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  // Builder State
+  const [selectedType, setSelectedType] = useState(null); // 'optionA', 'optionB', 'giftBox'
+  const [slots, setSlots] = useState({}); // { 0: product, 1: product, ... }
+  const [showPicker, setShowPicker] = useState(false);
+  const [activeSlotIndex, setActiveSlotIndex] = useState(null);
+  
+  // Cart
+  const { addItem } = useCart();
+  const { addToast } = useToast();
 
-    // Replace these with your actual IDs from EmailJS
-    emailjs.sendForm(
-      'service_z3jofzy', 
-      'template_u18wde6', 
-      form.current, 
-      '64vnB1DuhI2UDC7ZX'
-    )
-    .then((result) => {
-        setIsSent(true);
-        setIsSubmitting(false);
-    }, (error) => {
-        console.log(error.text);
-        setIsSubmitting(false);
-        alert("Something went wrong. Please try again.");
+  useEffect(() => {
+    // 1. Fetch Config
+    const unsubConfig = onSnapshot(doc(db, 'settings', 'combos'), (snap) => {
+      if (snap.exists()) setCombosConfig(snap.data());
+      else {
+         setCombosConfig({
+          optionA: { name: "Core Trio", price: 849, active: true },
+          optionB: { name: "Signature Mix", price: 899, active: true },
+          giftBox: { name: "Gift Box", price: 699, active: true }
+         });
+      }
     });
+
+    // 2. Fetch Products for Picker
+    const fetchProducts = async () => {
+      const q = query(collection(db, 'products'), orderBy('name'));
+      const snap = await getDocs(q);
+      setProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    };
+    fetchProducts();
+
+    return () => unsubConfig();
+  }, []);
+
+  const handleSlotClick = (index) => {
+    setActiveSlotIndex(index);
+    setShowPicker(true);
   };
 
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 40 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } }
+  const handleProductSelect = (product) => {
+    setSlots(prev => ({ ...prev, [activeSlotIndex]: product }));
+    setShowPicker(false);
+  };
+
+  const getFilteredProducts = () => {
+    if (!selectedType) return [];
+    
+    // Logic based on requirements
+    // Option A: All 3 slots must be Core Variant
+    if (selectedType === 'optionA') {
+      return products.filter(p => p.category === 'Core Variant');
+    }
+
+    // Option B: Slot 0, 1 = Core; Slot 2 = Signature
+    if (selectedType === 'optionB') {
+      if (activeSlotIndex === 0 || activeSlotIndex === 1) {
+        return products.filter(p => p.category === 'Core Variant');
+      }
+      return products.filter(p => p.category === 'Signature Variant');
+    }
+
+    // Gift Box
+    // Slot 0 = Soap (Core or Signature) -> Determines price
+    // Other slots are fixed physically but maybe we just show 1 slot for user customization
+    if (selectedType === 'giftBox') {
+       return products.filter(p => p.category === 'Core Variant' || p.category === 'Signature Variant');
+    }
+
+    return products;
+  };
+
+  const currentPrice = () => {
+    if (!selectedType || !combosConfig) return 0;
+    
+    // Dynamic price for Gift Box
+    if (selectedType === 'giftBox' && slots[0]) {
+      if (slots[0].category === 'Signature Variant') return 749;
+      return 699;
+    }
+
+    return combosConfig[selectedType]?.price || 0;
+  };
+
+  const isComplete = () => {
+    if (!selectedType) return false;
+    const requiredSlots = selectedType === 'giftBox' ? 1 : 3;
+    return Object.keys(slots).length === requiredSlots;
+  };
+
+  const handleAddToCart = async () => {
+    if (!isComplete()) return;
+    
+    const config = combosConfig[selectedType];
+    const itemTitle = `Custom Combo: ${config.name}`;
+    const itemPrice = currentPrice();
+    const comboImage = slots[0]?.imageUrl || slots[0]?.image || "https://images.unsplash.com/photo-1628746766624-d2eew17d1216?q=80&w=1000"; // Fallback
+    
+    // Construct description for cart
+    const itemsList = Object.values(slots).map(p => p.name).join(', ');
+
+    // Manually create cart item object since it's not a real DB product
+    const customProduct = {
+      id: `combo-${Date.now()}`, // Unique ID
+      name: itemTitle,
+      price: itemPrice,
+      image: comboImage,
+      category: 'Combo', // Important for free shipping
+      description: itemsList
+    };
+
+    await addItem(customProduct, 1);
+    addToast('Combo added to cart!', 'success');
+    
+    // Reset
+    setSlots({});
+    setSelectedType(null);
+  };
+
+  const resetBuilder = () => {
+    setSelectedType(null);
+    setSlots({});
   };
 
   return (
@@ -41,121 +144,202 @@ const Custom = () => {
       <Navbar />
 
       {/* --- HERO SECTION --- */}
-      <section className="relative w-full py-24 md:py-32 bg-bg-surface border-b border-border/10 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 text-center relative z-10">
-          <motion.span 
-            initial={{ opacity: 0, letterSpacing: "0.2em" }}
-            animate={{ opacity: 1, letterSpacing: "0.5em" }}
-            className="text-[10px] md:text-xs font-bold text-primary-button uppercase block mb-6"
-          >
-            Bespoke Creations
-          </motion.span>
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-5xl md:text-7xl font-serif text-text-primary mb-8 tracking-tight"
-          >
-            Custom <span className="italic font-light">Orders</span>
+      <section className="relative w-full py-20 bg-bg-surface border-b border-border/10">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-4xl md:text-6xl font-serif text-text-primary mb-6">
+            Curate Your Experience
           </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="max-w-2xl mx-auto text-text-secondary text-lg font-light leading-relaxed"
-          >
-            From intimate weddings to grand corporate celebrations, we craft personalized artisanal luxuries tailored to your unique story.
-          </motion.p>
-        </div>
-      </section>
-
-      {/* --- FORM SECTION --- */}
-      <section className="py-20 px-6 mb-20">
-        <div className="max-w-4xl mx-auto bg-white rounded-[3rem] shadow-2xl border border-border/20 overflow-hidden grid grid-cols-1 lg:grid-cols-2">
-          
-          {/* Form Side */}
-          <div className="p-10 md:p-14 space-y-8">
-            <h2 className="text-3xl font-serif text-text-primary">Inquiry Form</h2>
-            
-            {!isSent ? (
-              <form ref={form} onSubmit={sendEmail} className="space-y-6">
-                <div className="space-y-1 border-b border-border/40 pb-2">
-                  <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Full Name</label>
-                  <input name="user_name" required type="text" className="w-full bg-transparent outline-none text-text-primary py-1 placeholder:text-border" placeholder="Your name" />
-                </div>
-                
-                <div className="space-y-1 border-b border-border/40 pb-2">
-                  <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Email Address</label>
-                  <input name="user_email" required type="email" className="w-full bg-transparent outline-none text-text-primary py-1 placeholder:text-border" placeholder="hello@example.com" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-1 border-b border-border/40 pb-2">
-                    <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Event Type</label>
-                    <input name="event_type" type="text" className="w-full bg-transparent outline-none text-text-primary py-1" placeholder="e.g. Wedding" />
-                  </div>
-                  <div className="space-y-1 border-b border-border/40 pb-2">
-                    <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Quantity</label>
-                    <input name="quantity" type="number" className="w-full bg-transparent outline-none text-text-primary py-1" placeholder="50+" />
-                  </div>
-                </div>
-
-                <div className="space-y-1 border-b border-border/40 pb-2">
-                  <label className="text-[10px] uppercase tracking-widest font-bold text-text-secondary">Details</label>
-                  <textarea name="message" rows="3" className="w-full bg-transparent outline-none text-text-primary py-1 resize-none" placeholder="Tell us about your vision..." />
-                </div>
-
-                <motion.button 
-                  disabled={isSubmitting}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full bg-text-primary text-white py-4 rounded-2xl flex items-center justify-center gap-3 tracking-[0.2em] uppercase text-xs font-bold transition-all hover:bg-primary-button disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? "Sending..." : "Send Request"} <Send size={14} />
-                </motion.button>
-              </form>
-            ) : (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="h-full flex flex-col items-center justify-center text-center space-y-4 py-10"
-              >
-                <div className="w-20 h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center">
-                  <CheckCircle size={40} />
-                </div>
-                <h3 className="text-2xl font-serif text-text-primary">Thank You!</h3>
-                <p className="text-text-secondary text-sm leading-relaxed">
-                  Your inquiry has been sent. The Prana Team will get back to you shortly.
-                </p>
-                <button 
-                  onClick={() => setIsSent(false)}
-                  className="text-xs font-bold uppercase tracking-widest text-primary-button underline mt-4"
-                >
-                  Send another inquiry
-                </button>
-              </motion.div>
-            )}
-          </div>
-
-          {/* Image/Visual Side */}
-          <div className="hidden lg:block relative bg-bg-surface">
-            <img 
-              src="https://res.cloudinary.com/dslr4xced/image/upload/v1769362029/IMG_0364_ihbenf.jpg" 
-              className="w-full h-full object-cover opacity-90"
-              alt="Custom Packaging"
-            />
-            <div className="absolute inset-0 bg-primary-button/10 mix-blend-multiply" />
-            <div className="absolute bottom-10 left-10 right-10 p-6 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30">
-              <p className="text-white text-xs tracking-widest uppercase font-bold text-center">
-                Handcrafted for your special moments
-              </p>
-            </div>
+          <div className="flex justify-center gap-6">
+            <button 
+              onClick={() => setActiveTab('builder')}
+              className={`pb-2 text-xs font-bold uppercase tracking-[0.2em] transition-all border-b-2 ${activeTab === 'builder' ? 'text-primary-button border-primary-button' : 'text-text-secondary border-transparent hover:text-text-primary'}`}
+            >
+              Build Your Box
+            </button>
+            <button 
+               onClick={() => setActiveTab('inquiry')}
+               className={`pb-2 text-xs font-bold uppercase tracking-[0.2em] transition-all border-b-2 ${activeTab === 'inquiry' ? 'text-primary-button border-primary-button' : 'text-text-secondary border-transparent hover:text-text-primary'}`}
+            >
+               Bespoke Requests
+            </button>
           </div>
         </div>
       </section>
+
+      {/* --- CONTENT --- */}
+      <div className="flex-1 py-16 px-6">
+        <div className="max-w-6xl mx-auto">
+          {activeTab === 'builder' ? (
+             <AnimatePresence mode="wait">
+               {!selectedType ? (
+                 <motion.div key="selection" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {[
+                      { id: 'optionA', bg: 'bg-[#FDF6F0]' },
+                      { id: 'optionB', bg: 'bg-[#F4F9F9]' },
+                      { id: 'giftBox', bg: 'bg-[#FFF8F8]' }
+                    ].map(opt => {
+                      const conf = combosConfig?.[opt.id];
+                      if (!conf || !conf.active) return null;
+                      return (
+                        <div key={opt.id} onClick={() => setSelectedType(opt.id)} className={`group cursor-pointer rounded-[2.5rem] p-8 border border-border/40 hover:shadow-xl transition-all duration-500 relative overflow-hidden ${opt.bg}`}>
+                           <div className="absolute top-6 right-6 w-10 h-10 bg-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Plus size={20} className="text-primary-button" />
+                           </div>
+                           <h3 className="text-2xl font-serif text-text-primary mb-2 mt-4">{conf.name}</h3>
+                           <p className="text-3xl font-bold text-text-primary mb-6">₹{conf.price}<span className="text-sm font-normal text-text-secondary">+</span></p>
+                           <p className="text-xs text-text-secondary uppercase tracking-widest leading-relaxed opacity-80">{conf.description || 'Custom Selection'}</p>
+                        </div>
+                      );
+                    })}
+                 </motion.div>
+               ) : (
+                 <motion.div key="builder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col lg:flex-row gap-12">
+                    {/* LEFT: Builder Interface */}
+                    <div className="flex-1 space-y-8">
+                       <button onClick={resetBuilder} className="flex items-center gap-2 text-text-secondary hover:text-primary-button transition-colors text-xs font-bold uppercase tracking-widest mb-4">
+                         <X size={14} /> Cancel Selection
+                       </button>
+                       
+                       <div className="bg-white p-8 rounded-[2.5rem] border border-border/40 shadow-lg relative">
+                          <h2 className="font-serif text-3xl text-text-primary mb-2">{combosConfig[selectedType].name}</h2>
+                          <p className="text-text-secondary text-sm mb-8">Tap a slot to fill it with your choice.</p>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                             {Array.from({ length: selectedType === 'giftBox' ? 1 : 3 }).map((_, idx) => (
+                               <div 
+                                 key={idx} 
+                                 onClick={() => handleSlotClick(idx)}
+                                 className={`aspect-[3/4] rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all ${slots[idx] ? 'border-primary-button bg-primary-button/5' : 'border-border hover:border-text-secondary hover:bg-bg-surface'}`}
+                               >
+                                  {slots[idx] ? (
+                                    <>
+                                      <img src={slots[idx].imageUrl} className="w-20 h-20 object-cover rounded-full mb-4 shadow-md" />
+                                      <p className="text-xs font-bold text-text-primary text-center px-2">{slots[idx].name}</p>
+                                      <p className="text-[9px] uppercase text-text-secondary mt-1 tracking-widest">{slots[idx].category}</p>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="w-12 h-12 rounded-full bg-bg-surface flex items-center justify-center text-text-secondary mb-3"><Plus size={20} /></div>
+                                      <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Select Soap</p>
+                                    </>
+                                  )}
+                               </div>
+                             ))}
+                             {/* Fixed items visualization for Gift Box */}
+                             {selectedType === 'giftBox' && (
+                               <div className="col-span-1 md:col-span-2 aspect-video bg-bg-surface/50 rounded-2xl flex items-center justify-center border border-border/20">
+                                  <div className="text-center">
+                                    <Gift className="mx-auto text-primary-button mb-3 opacity-50" size={32} />
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Standard Inclusions</p>
+                                    <p className="text-xs text-text-primary mt-1">Bath Salt • Body Wax • Loofah</p>
+                                  </div>
+                               </div>
+                             )}
+                          </div>
+                       </div>
+                    </div>
+
+                    {/* RIGHT: Summary */}
+                    <div className="lg:w-96">
+                       <div className="bg-bg-surface p-8 rounded-[2.5rem] border border-border/20 sticky top-32">
+                          <h3 className="font-serif text-xl text-text-primary mb-6">Summary</h3>
+                          
+                          <div className="space-y-4 mb-8">
+                             {Object.entries(slots).map(([idx, prod]) => (
+                                <div key={idx} className="flex justify-between items-center text-sm">
+                                   <span className="text-text-secondary">{prod.name}</span>
+                                   {prod.category === 'Signature Variant' && <span className="text-[9px] font-bold bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">SIG</span>}
+                                </div>
+                             ))}
+                             {Object.keys(slots).length === 0 && <p className="text-text-secondary italic text-sm">Your box is empty.</p>}
+                          </div>
+                          
+                          <div className="border-t border-border/10 pt-6 flex justify-between items-center mb-8">
+                             <span className="text-xs font-bold uppercase tracking-widest text-text-primary">Total Price</span>
+                             <span className="text-2xl font-serif text-text-primary">₹{currentPrice()}</span>
+                          </div>
+                          
+                          <button 
+                            disabled={!isComplete()}
+                            onClick={handleAddToCart}
+                            className="w-full bg-text-primary text-white py-4 rounded-full flex items-center justify-center gap-3 shadow-xl hover:bg-primary-button transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+                          >
+                            <ShoppingBag size={18} />
+                            <span className="text-xs font-bold uppercase tracking-widest">Add to Cart</span>
+                          </button>
+                       </div>
+                    </div>
+                 </motion.div>
+               )}
+             </AnimatePresence>
+          ) : (
+            <BespokeForm />
+          )}
+        </div>
+      </div>
+
+      {/* Product Picker Modal */}
+      <AnimatePresence>
+        {showPicker && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPicker(false)} className="absolute inset-0 bg-text-primary/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl p-8 max-h-[80vh] flex flex-col">
+              <div className="flex justify-between items-center mb-6">
+                 <h3 className="font-serif text-2xl text-text-primary">Select Item</h3>
+                 <button onClick={() => setShowPicker(false)} className="p-2 hover:bg-bg-surface rounded-full"><X size={20} /></button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 gap-4 custom-scrollbar">
+                {getFilteredProducts().map(p => (
+                   <div key={p.id} onClick={() => handleProductSelect(p)} className="cursor-pointer group">
+                      <div className="aspect-[3/4] bg-bg-surface rounded-2xl overflow-hidden mb-3 relative">
+                         <img src={p.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                         {p.category.includes('Signature') && <span className="absolute top-2 left-2 bg-text-primary text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">Signature</span>}
+                      </div>
+                      <h4 className="text-sm font-bold text-text-primary text-center leading-tight">{p.name}</h4>
+                   </div>
+                ))}
+                {getFilteredProducts().length === 0 && (
+                   <div className="col-span-3 text-center py-10 text-text-secondary italic">No products available for this slot.</div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <Footer />
     </div>
   );
+};
+
+const BespokeForm = () => {
+    const form = useRef();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSent, setIsSent] = useState(false);
+  
+    const sendEmail = (e) => {
+      e.preventDefault();
+      setIsSubmitting(true);
+      emailjs.sendForm('service_z3jofzy', 'template_u18wde6', form.current, '64vnB1DuhI2UDC7ZX')
+      .then(() => { setIsSent(true); setIsSubmitting(false); }, 
+      (error) => { console.log(error.text); setIsSubmitting(false); alert("Something went wrong."); });
+    };
+
+    return !isSent ? (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-xl mx-auto bg-white p-10 rounded-[2.5rem] shadow-lg border border-border/20">
+            <h2 className="text-3xl font-serif text-text-primary mb-2">Inquiry Form</h2>
+            <p className="text-text-secondary text-sm mb-8">For weddings, corporate gifts, and bulk orders.</p>
+            <form ref={form} onSubmit={sendEmail} className="space-y-6">
+                <div className="space-y-1"><label className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">Name</label><input name="user_name" required className="w-full border-b border-border/40 py-2 outline-none bg-transparent" /></div>
+                <div className="space-y-1"><label className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">Email</label><input name="user_email" required type="email" className="w-full border-b border-border/40 py-2 outline-none bg-transparent" /></div>
+                <div className="space-y-1"><label className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">Message</label><textarea name="message" rows="4" className="w-full border-b border-border/40 py-2 outline-none bg-transparent resize-none" /></div>
+                <button disabled={isSubmitting} className="w-full bg-text-primary text-white py-4 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-primary-button disabled:opacity-50">{isSubmitting ? "Sending..." : "Submit Inquiry"}</button>
+            </form>
+        </motion.div>
+    ) : (
+        <div className="text-center py-20"><h3 className="text-2xl font-serif text-text-primary">Request Sent</h3><p className="text-text-secondary mt-2">We will contact you shortly.</p></div>
+    );
 };
 
 export default Custom;

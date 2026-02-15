@@ -749,6 +749,123 @@ const TestimonialsManager = () => {
   );
 };
 
+// 6. COMBO MANAGER
+const ComboManager = () => {
+  const { addToast } = useToast();
+  const [combos, setCombos] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  React.useEffect(() => {
+    return onSnapshot(doc(db, 'settings', 'combos'), (snap) => {
+      if (snap.exists()) {
+        setCombos(snap.data());
+      } else {
+        // Default values if document doesn't exist
+        setCombos({
+          optionA: { name: "Core Trio", price: 849, active: true },
+          optionB: { name: "Signature Mix", price: 899, active: true },
+          giftBox: { name: "Gift Box", price: 699, active: true }
+        });
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await setDoc(doc(db, 'settings', 'combos'), {
+        ...combos,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      addToast('Combo settings updated', 'success');
+    } catch (e) {
+      addToast('Failed to update combos', 'error');
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateCombo = (key, field, value) => {
+    setCombos(prev => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        [field]: value
+      }
+    }));
+  };
+
+  const comboDefinitions = [
+    { key: 'optionA', label: 'Option A (Core Trio)' },
+    { key: 'optionB', label: 'Option B (Signature Mix)' },
+    { key: 'giftBox', label: 'Gift Box' }
+  ];
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+      <div className="bg-white/50 p-6 rounded-[2rem] border border-border/40 backdrop-blur-sm">
+         <h2 className="text-3xl font-serif text-text-primary">Combo Builder</h2>
+         <p className="text-[10px] uppercase tracking-widest text-text-secondary font-bold mt-1">Configure Custom Offers</p>
+      </div>
+
+      <div className="bg-white p-10 rounded-[2.5rem] border border-border/40 shadow-xl">
+        {loading ? <div className="text-center italic text-text-secondary py-10">Loading configuration...</div> : (
+          <form onSubmit={handleSave} className="space-y-8">
+            <div className="grid gap-8">
+              {comboDefinitions.map(({ key, label }) => (
+                <div key={key} className="p-6 bg-bg-surface/30 rounded-2xl border border-border/20 space-y-4">
+                  <div className="flex justify-between items-center border-b border-border/10 pb-4">
+                    <h3 className="font-serif text-lg text-text-primary">{label}</h3>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={combos[key]?.active !== false} 
+                        onChange={e => updateCombo(key, 'active', e.target.checked)} 
+                        className="sr-only peer" 
+                      />
+                      <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-button"></div>
+                    </label>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">Display Name</label>
+                      <input 
+                        value={combos[key]?.name || ''} 
+                        onChange={e => updateCombo(key, 'name', e.target.value)}
+                        className="w-full bg-white border border-border/40 rounded-xl px-4 py-3 text-text-primary outline-none focus:border-primary-button transition-colors text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">Base Price (₹)</label>
+                       <input 
+                         type="number"
+                         value={combos[key]?.price || 0} 
+                         onChange={e => updateCombo(key, 'price', Number(e.target.value))}
+                         className="w-full bg-white border border-border/40 rounded-xl px-4 py-3 text-text-primary outline-none focus:border-primary-button transition-colors text-sm font-bold"
+                       />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-border/10">
+              <button type="submit" disabled={saving} className="bg-text-primary text-white px-8 py-3 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-primary-button shadow-lg transition-all disabled:opacity-50">
+                {saving ? 'Saving...' : 'Save Configuration'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
 // --- MAIN DASHBOARD LAYOUT ---
 
 const AdminDashboard = () => {
@@ -768,6 +885,7 @@ const AdminDashboard = () => {
           {[
             { id: 'products', label: 'Inventory', icon: <Package size={18} /> },
             { id: 'orders', label: 'Orders', icon: <ShoppingCart size={18} /> },
+            { id: 'combos', label: 'Combos', icon: <Tag size={18} /> },
             { id: 'hero', label: 'Hero Slider', icon: <ImageIcon size={18} /> },
             { id: 'testimonials', label: 'Reviews', icon: <MessageSquareQuote size={18} /> },
             { id: 'promo', label: 'Announcements', icon: <Tag size={18} /> }
@@ -809,6 +927,7 @@ const AdminDashboard = () => {
            <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
              {activeTab === 'products' && <ProductsManager />}
              {activeTab === 'orders' && <OrdersManager />}
+             {activeTab === 'combos' && <ComboManager />}
              {activeTab === 'hero' && <HeroManager />}
              {activeTab === 'testimonials' && <TestimonialsManager />}
              {activeTab === 'promo' && <PromoManager />}

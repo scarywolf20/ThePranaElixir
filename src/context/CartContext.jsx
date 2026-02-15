@@ -109,6 +109,8 @@ export function CartProvider({ children }) {
                 title: product?.name || product?.title || '',
                 price: Number(product?.price || 0),
                 image: product?.imageUrl || product?.image || '',
+                description: product?.description || '',
+                category: product?.category || 'Standard',
                 quantity: qty,
               },
             ]
@@ -128,6 +130,9 @@ export function CartProvider({ children }) {
             title: product?.name || product?.title || '',
             price: Number(product?.price || 0),
             image: product?.imageUrl || product?.image || '',
+            // Store description/category for Custom Combos
+            description: product?.description || '', 
+            category: product?.category || 'Standard',
             quantity: nextQty,
             updatedAt: serverTimestamp(),
             ...(existing ? {} : { createdAt: serverTimestamp() }),
@@ -221,11 +226,9 @@ export function CartProvider({ children }) {
     
     // Actually, let's just check the titles for now as per the requirements.
     const hasComboOrGiftBox = items.some(item => 
+      item.category === 'Combo' || 
       item.title?.toLowerCase().includes('combo') || 
-      item.title?.toLowerCase().includes('gift box') ||
-      // Fallback if we add category to cart items later
-      item.category === 'Combo' ||
-      item.category === 'Gift Box'
+      item.title?.toLowerCase().includes('gift box')
     )
 
     return hasComboOrGiftBox ? 0 : 50
