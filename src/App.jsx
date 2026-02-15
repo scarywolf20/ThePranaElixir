@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'r
 import Navbar from "./Components/Pages/Navbar"
 import HeroCarousel from "./Components/Pages/HeroCarousel"
 import ProductsSection from "./Components/Pages/Products"
+import FeaturedCollections from "./Components/Pages/FeaturedCollections"
 import AboutUs from "./Components/Pages/AboutUs"
 import BestSellers from "./Components/Pages/BestSellers"
 import Testimonials from "./Components/Pages/Testimonials"
@@ -96,9 +97,10 @@ function App() {
             <Navbar />
             <HeroCarousel />
             <Features />
-            {/* <ProductsSection /> */}
             <AboutUs />
             <BestSellers />
+            <FeaturedCollections />
+            {/* <ProductsSection /> */}
             <Testimonials />
             <Footer />
             <BackToTop />
