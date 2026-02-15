@@ -11,12 +11,12 @@ import { useToast } from '../../context/useToast';
 
 const Custom = () => {
   const [activeTab, setActiveTab] = useState('builder'); // 'builder' | 'inquiry'
-  const [combosConfig, setCombosConfig] = useState(null);
+  const [combos, setCombos] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Builder State
-  const [selectedType, setSelectedType] = useState(null); // 'optionA', 'optionB', 'giftBox'
+  const [selectedCombo, setSelectedCombo] = useState(null); // Full combo object
   const [slots, setSlots] = useState({}); // { 0: product, 1: product, ... }
   const [showPicker, setShowPicker] = useState(false);
   const [activeSlotIndex, setActiveSlotIndex] = useState(null);
@@ -26,19 +26,13 @@ const Custom = () => {
   const { addToast } = useToast();
 
   useEffect(() => {
-    // 1. Fetch Config
-    const unsubConfig = onSnapshot(doc(db, 'settings', 'combos'), (snap) => {
-      if (snap.exists()) setCombosConfig(snap.data());
-      else {
-         setCombosConfig({
-          optionA: { name: "Core Trio", price: 849, active: true },
-          optionB: { name: "Signature Mix", price: 899, active: true },
-          giftBox: { name: "Gift Box", price: 699, active: true }
-         });
-      }
+    // 1. Fetch Combos
+    const qCombos = query(collection(db, 'combos'), orderBy('price', 'asc'));
+    const unsubCombos = onSnapshot(qCombos, (snap) => {
+      setCombos(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.active));
     });
 
-    // 2. Fetch Products for Picker
+    // 2. Fetch Products
     const fetchProducts = async () => {
       const q = query(collection(db, 'products'), orderBy('name'));
       const snap = await getDocs(q);
@@ -47,7 +41,7 @@ const Custom = () => {
     };
     fetchProducts();
 
-    return () => unsubConfig();
+    return () => unsubCombos();
   }, []);
 
   const handleSlotClick = (index) => {
@@ -61,26 +55,27 @@ const Custom = () => {
   };
 
   const getFilteredProducts = () => {
-    if (!selectedType) return [];
+    if (!selectedCombo) return [];
     
-    // Logic based on requirements
-    // Option A: All 3 slots must be Core Variant
-    if (selectedType === 'optionA') {
+    const template = selectedCombo.template || 'all_core';
+
+    // Logic Templates
+    
+    // 1. All Core: All slots must be Core Variant
+    if (template === 'all_core') {
       return products.filter(p => p.category === 'Core Variant');
     }
 
-    // Option B: Slot 0, 1 = Core; Slot 2 = Signature
-    if (selectedType === 'optionB') {
+    // 2. Signature Mix: Slots 0, 1 = Core; Slot 2 = Signature
+    if (template === 'mixed') {
       if (activeSlotIndex === 0 || activeSlotIndex === 1) {
         return products.filter(p => p.category === 'Core Variant');
       }
       return products.filter(p => p.category === 'Signature Variant');
     }
 
-    // Gift Box
-    // Slot 0 = Soap (Core or Signature) -> Determines price
-    // Other slots are fixed physically but maybe we just show 1 slot for user customization
-    if (selectedType === 'giftBox') {
+    // 3. Gift Box: Slot 0 = Soap (Core or Signature)
+    if (template === 'gift_box') {
        return products.filter(p => p.category === 'Core Variant' || p.category === 'Signature Variant');
     }
 
@@ -88,56 +83,60 @@ const Custom = () => {
   };
 
   const currentPrice = () => {
-    if (!selectedType || !combosConfig) return 0;
+    if (!selectedCombo) return 0;
     
-    // Dynamic price for Gift Box
-    if (selectedType === 'giftBox' && slots[0]) {
-      if (slots[0].category === 'Signature Variant') return 749;
-      return 699;
+    // Dynamic price for Gift Box logic
+    // If Gift Box template AND Slot 0 is Signature, add premium (e.g. +50)
+    // We can assume base price covers Core, and if Signature selected, we add difference.
+    // For now, let's keep it simple or stick to the requirement: "Gift Box price updates if you pick a Signature soap (+₹50)"
+    if (selectedCombo.template === 'gift_box' && slots[0]) {
+      if (slots[0].category === 'Signature Variant') {
+        const base = selectedCombo.price;
+        return base + 50; 
+      }
     }
 
-    return combosConfig[selectedType]?.price || 0;
+    return selectedCombo.price || 0;
   };
 
   const isComplete = () => {
-    if (!selectedType) return false;
-    const requiredSlots = selectedType === 'giftBox' ? 1 : 3;
+    if (!selectedCombo) return false;
+    const requiredSlots = selectedCombo.template === 'gift_box' ? 1 : 3;
     return Object.keys(slots).length === requiredSlots;
   };
 
   const handleAddToCart = async () => {
     if (!isComplete()) return;
     
-    const config = combosConfig[selectedType];
-    const itemTitle = `Custom Combo: ${config.name}`;
+    const itemTitle = `Custom Combo: ${selectedCombo.name}`;
     const itemPrice = currentPrice();
-    const comboImage = slots[0]?.imageUrl || slots[0]?.image || "https://images.unsplash.com/photo-1628746766624-d2eew17d1216?q=80&w=1000"; // Fallback
+    const comboImage = slots[0]?.imageUrl || slots[0]?.image || "https://images.unsplash.com/photo-1628746766624-d2eew17d1216?q=80&w=1000"; 
     
-    // Construct description for cart
     const itemsList = Object.values(slots).map(p => p.name).join(', ');
 
-    // Manually create cart item object since it's not a real DB product
     const customProduct = {
-      id: `combo-${Date.now()}`, // Unique ID
+      id: `combo-${Date.now()}`, 
       name: itemTitle,
       price: itemPrice,
       image: comboImage,
-      category: 'Combo', // Important for free shipping
+      category: 'Combo', 
       description: itemsList
     };
 
     await addItem(customProduct, 1);
     addToast('Combo added to cart!', 'success');
     
-    // Reset
     setSlots({});
-    setSelectedType(null);
+    setSelectedCombo(null);
   };
 
   const resetBuilder = () => {
-    setSelectedType(null);
+    setSelectedCombo(null);
     setSlots({});
   };
+
+  // Background colors for variety
+  const BG_COLORS = ['bg-[#FDF6F0]', 'bg-[#F4F9F9]', 'bg-[#FFF8F8]', 'bg-blue-50', 'bg-purple-50'];
 
   return (
     <div className="bg-bg-main min-h-screen flex flex-col font-sans selection:bg-primary-button/20">
@@ -171,26 +170,20 @@ const Custom = () => {
         <div className="max-w-6xl mx-auto">
           {activeTab === 'builder' ? (
              <AnimatePresence mode="wait">
-               {!selectedType ? (
-                 <motion.div key="selection" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {[
-                      { id: 'optionA', bg: 'bg-[#FDF6F0]' },
-                      { id: 'optionB', bg: 'bg-[#F4F9F9]' },
-                      { id: 'giftBox', bg: 'bg-[#FFF8F8]' }
-                    ].map(opt => {
-                      const conf = combosConfig?.[opt.id];
-                      if (!conf || !conf.active) return null;
-                      return (
-                        <div key={opt.id} onClick={() => setSelectedType(opt.id)} className={`group cursor-pointer rounded-[2.5rem] p-8 border border-border/40 hover:shadow-xl transition-all duration-500 relative overflow-hidden ${opt.bg}`}>
+               {!selectedCombo ? (
+                 <motion.div key="selection" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {loading ? <div className="col-span-full text-center italic text-text-secondary">Loading bundles...</div> : 
+                     combos.length === 0 ? <div className="col-span-full text-center italic text-text-secondary">No active combos at the moment.</div> :
+                     combos.map((combo, idx) => (
+                        <div key={combo.id} onClick={() => setSelectedCombo(combo)} className={`group cursor-pointer rounded-[2.5rem] p-8 border border-border/40 hover:shadow-xl transition-all duration-500 relative overflow-hidden ${BG_COLORS[idx % BG_COLORS.length]}`}>
                            <div className="absolute top-6 right-6 w-10 h-10 bg-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                               <Plus size={20} className="text-primary-button" />
                            </div>
-                           <h3 className="text-2xl font-serif text-text-primary mb-2 mt-4">{conf.name}</h3>
-                           <p className="text-3xl font-bold text-text-primary mb-6">₹{conf.price}<span className="text-sm font-normal text-text-secondary">+</span></p>
-                           <p className="text-xs text-text-secondary uppercase tracking-widest leading-relaxed opacity-80">{conf.description || 'Custom Selection'}</p>
+                           <h3 className="text-2xl font-serif text-text-primary mb-2 mt-4">{combo.name}</h3>
+                           <p className="text-3xl font-bold text-text-primary mb-6">₹{combo.price}<span className="text-sm font-normal text-text-secondary">+</span></p>
+                           <p className="text-xs text-text-secondary uppercase tracking-widest leading-relaxed opacity-80">{combo.description || 'Custom Selection'}</p>
                         </div>
-                      );
-                    })}
+                    ))}
                  </motion.div>
                ) : (
                  <motion.div key="builder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col lg:flex-row gap-12">
@@ -201,11 +194,11 @@ const Custom = () => {
                        </button>
                        
                        <div className="bg-white p-8 rounded-[2.5rem] border border-border/40 shadow-lg relative">
-                          <h2 className="font-serif text-3xl text-text-primary mb-2">{combosConfig[selectedType].name}</h2>
+                          <h2 className="font-serif text-3xl text-text-primary mb-2">{selectedCombo.name}</h2>
                           <p className="text-text-secondary text-sm mb-8">Tap a slot to fill it with your choice.</p>
                           
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                             {Array.from({ length: selectedType === 'giftBox' ? 1 : 3 }).map((_, idx) => (
+                             {Array.from({ length: selectedCombo.template === 'gift_box' ? 1 : 3 }).map((_, idx) => (
                                <div 
                                  key={idx} 
                                  onClick={() => handleSlotClick(idx)}
@@ -226,7 +219,7 @@ const Custom = () => {
                                </div>
                              ))}
                              {/* Fixed items visualization for Gift Box */}
-                             {selectedType === 'giftBox' && (
+                             {selectedCombo.template === 'gift_box' && (
                                <div className="col-span-1 md:col-span-2 aspect-video bg-bg-surface/50 rounded-2xl flex items-center justify-center border border-border/20">
                                   <div className="text-center">
                                     <Gift className="mx-auto text-primary-button mb-3 opacity-50" size={32} />

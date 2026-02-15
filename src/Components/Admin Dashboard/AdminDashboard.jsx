@@ -752,119 +752,196 @@ const TestimonialsManager = () => {
 // 6. COMBO MANAGER
 const ComboManager = () => {
   const { addToast } = useToast();
-  const [combos, setCombos] = useState({});
+  const [combos, setCombos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentCombo, setCurrentCombo] = useState(null);
 
+  // Fetch combos from collection
   React.useEffect(() => {
-    return onSnapshot(doc(db, 'settings', 'combos'), (snap) => {
-      if (snap.exists()) {
-        setCombos(snap.data());
-      } else {
-        // Default values if document doesn't exist
-        setCombos({
-          optionA: { name: "Core Trio", price: 849, active: true },
-          optionB: { name: "Signature Mix", price: 899, active: true },
-          giftBox: { name: "Gift Box", price: 699, active: true }
-        });
-      }
+    const q = query(collection(db, 'combos'), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snap) => {
+      setCombos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
     });
   }, []);
 
   const handleSave = async (e) => {
     e.preventDefault();
-    setSaving(true);
+    
+    const payload = {
+      name: currentCombo.name || '',
+      price: Number(currentCombo.price || 0),
+      description: currentCombo.description || '',
+      template: currentCombo.template || 'all_core', // Default template
+      active: Boolean(currentCombo.active),
+      updatedAt: serverTimestamp(),
+    };
+
     try {
-      await setDoc(doc(db, 'settings', 'combos'), {
-        ...combos,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-      addToast('Combo settings updated', 'success');
+      if (currentCombo.id) {
+        await setDoc(doc(db, 'combos', currentCombo.id), payload, { merge: true });
+        addToast('Combo updated', 'success');
+      } else {
+        await addDoc(collection(db, 'combos'), { ...payload, createdAt: serverTimestamp() });
+        addToast('Combo created', 'success');
+      }
+      setIsEditing(false);
+      setCurrentCombo(null);
     } catch (e) {
-      addToast('Failed to update combos', 'error');
+      addToast('Failed to save combo', 'error');
       console.error(e);
-    } finally {
-      setSaving(false);
     }
   };
 
-  const updateCombo = (key, field, value) => {
-    setCombos(prev => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        [field]: value
+  const handleDelete = async (id) => {
+    if (window.confirm("Delete this combo?")) {
+      try {
+        await deleteDoc(doc(db, 'combos', id));
+        addToast('Combo deleted', 'success');
+      } catch (e) {
+        addToast('Failed to delete combo', 'error');
       }
-    }));
+    }
   };
 
-  const comboDefinitions = [
-    { key: 'optionA', label: 'Option A (Core Trio)' },
-    { key: 'optionB', label: 'Option B (Signature Mix)' },
-    { key: 'giftBox', label: 'Gift Box' }
+  const openEdit = (combo = { name: '', price: 0, description: '', template: 'all_core', active: true }) => {
+    setCurrentCombo(combo);
+    setIsEditing(true);
+  };
+
+  const TEMPLATES = [
+    { value: 'all_core', label: 'Core Trio Logic (3 Core Items)' },
+    { value: 'mixed', label: 'Signature Mix Logic (2 Core + 1 Sig)' },
+    { value: 'gift_box', label: 'Gift Box Logic (1 Item + Goodies)' },
   ];
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-      <div className="bg-white/50 p-6 rounded-[2rem] border border-border/40 backdrop-blur-sm">
-         <h2 className="text-3xl font-serif text-text-primary">Combo Builder</h2>
-         <p className="text-[10px] uppercase tracking-widest text-text-secondary font-bold mt-1">Configure Custom Offers</p>
+      {/* Header */}
+      <div className="bg-white/50 p-6 rounded-[2rem] border border-border/40 backdrop-blur-sm flex justify-between items-center">
+         <div>
+            <h2 className="text-3xl font-serif text-text-primary">Combos</h2>
+            <p className="text-[10px] uppercase tracking-widest text-text-secondary font-bold mt-1">Manage Bundles</p>
+         </div>
+         <button 
+           onClick={() => openEdit()}
+           className="bg-text-primary text-white px-6 py-3 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-primary-button shadow-lg flex gap-2 items-center transition-all"
+         >
+           <Plus size={16} /> Create Combo
+         </button>
       </div>
 
-      <div className="bg-white p-10 rounded-[2.5rem] border border-border/40 shadow-xl">
-        {loading ? <div className="text-center italic text-text-secondary py-10">Loading configuration...</div> : (
-          <form onSubmit={handleSave} className="space-y-8">
-            <div className="grid gap-8">
-              {comboDefinitions.map(({ key, label }) => (
-                <div key={key} className="p-6 bg-bg-surface/30 rounded-2xl border border-border/20 space-y-4">
-                  <div className="flex justify-between items-center border-b border-border/10 pb-4">
-                    <h3 className="font-serif text-lg text-text-primary">{label}</h3>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={combos[key]?.active !== false} 
-                        onChange={e => updateCombo(key, 'active', e.target.checked)} 
-                        className="sr-only peer" 
-                      />
-                      <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-button"></div>
-                    </label>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">Display Name</label>
-                      <input 
-                        value={combos[key]?.name || ''} 
-                        onChange={e => updateCombo(key, 'name', e.target.value)}
-                        className="w-full bg-white border border-border/40 rounded-xl px-4 py-3 text-text-primary outline-none focus:border-primary-button transition-colors text-sm"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                       <label className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">Base Price (₹)</label>
-                       <input 
-                         type="number"
-                         value={combos[key]?.price || 0} 
-                         onChange={e => updateCombo(key, 'price', Number(e.target.value))}
-                         className="w-full bg-white border border-border/40 rounded-xl px-4 py-3 text-text-primary outline-none focus:border-primary-button transition-colors text-sm font-bold"
-                       />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+      {/* Edit Form */}
+      <AnimatePresence>
+        {isEditing && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }} 
+            animate={{ opacity: 1, height: 'auto' }} 
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-white p-8 rounded-[2.5rem] border border-border/40 shadow-xl overflow-hidden"
+          >
+            <h3 className="text-lg font-serif text-text-primary mb-6">{currentCombo.id ? 'Edit Combo' : 'New Combo'}</h3>
+            <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">Display Name</label>
+                <input 
+                  value={currentCombo.name} 
+                  onChange={(e) => setCurrentCombo({...currentCombo, name: e.target.value})}
+                  className="w-full bg-bg-surface border border-border/40 rounded-xl px-4 py-3 text-text-primary outline-none focus:border-primary-button transition-colors"
+                  placeholder="e.g. Summer Start Kit"
+                  required
+                />
+              </div>
 
-            <div className="flex justify-end pt-4 border-t border-border/10">
-              <button type="submit" disabled={saving} className="bg-text-primary text-white px-8 py-3 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-primary-button shadow-lg transition-all disabled:opacity-50">
-                {saving ? 'Saving...' : 'Save Configuration'}
-              </button>
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">Price (₹)</label>
+                <input 
+                  type="number"
+                  value={currentCombo.price} 
+                  onChange={(e) => setCurrentCombo({...currentCombo, price: Number(e.target.value)})}
+                  className="w-full bg-bg-surface border border-border/40 rounded-xl px-4 py-3 text-text-primary outline-none focus:border-primary-button transition-colors"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                 <label className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">Logic Template</label>
+                 <select 
+                   value={currentCombo.template} 
+                   onChange={(e) => setCurrentCombo({...currentCombo, template: e.target.value})}
+                   className="w-full bg-bg-surface border border-border/40 rounded-xl px-4 py-3 text-text-primary outline-none cursor-pointer"
+                 >
+                   {TEMPLATES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                 </select>
+                 <p className="text-[10px] text-text-secondary italic">Determines the rules for selecting items.</p>
+              </div>
+
+              <div className="space-y-2">
+                 <label className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">Description</label>
+                 <textarea 
+                   rows="2"
+                   value={currentCombo.description}
+                   onChange={(e) => setCurrentCombo({...currentCombo, description: e.target.value})}
+                   className="w-full bg-bg-surface border border-border/40 rounded-xl px-4 py-3 text-text-primary outline-none focus:border-primary-button transition-colors resize-none"
+                   placeholder="Brief subtitle..."
+                 />
+              </div>
+
+              <label className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl cursor-pointer border border-border/10 w-fit">
+                <input 
+                  type="checkbox" 
+                  checked={currentCombo.active} 
+                  onChange={e => setCurrentCombo({...currentCombo, active: e.target.checked})} 
+                  className="accent-primary-button w-4 h-4" 
+                />
+                <span className="text-xs font-bold uppercase tracking-widest text-text-primary">Active on Site</span>
+              </label>
+
+              <div className="md:col-span-2 flex justify-end gap-3 pt-4 border-t border-border/10">
+                <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-2 text-text-secondary text-xs font-bold uppercase tracking-widest hover:text-text-primary">Cancel</button>
+                <button type="submit" className="bg-primary-button text-white px-8 py-3 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-primary-hover shadow-lg">Save Combo</button>
+              </div>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* List */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {loading ? (
+          <div className="col-span-full text-center italic text-text-secondary py-10">Loading combos...</div>
+        ) : combos.length === 0 ? (
+          <div className="col-span-full text-center italic text-text-secondary py-10">No combos created yet.</div>
+        ) : (
+          combos.map((combo) => (
+            <div key={combo.id} className={`p-6 rounded-[2rem] border transition-all relative group ${combo.active ? 'bg-white border-border/40 shadow-sm hover:shadow-md' : 'bg-gray-50 border-gray-200 opacity-70'}`}>
+               <div className="flex justify-between items-start mb-4">
+                  <span className={`text-[9px] font-bold uppercase px-2 py-1 rounded-full ${combo.active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
+                    {combo.active ? 'Active' : 'Hidden'}
+                  </span>
+                  <div className="flex gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => openEdit(combo)} className="p-2 hover:bg-bg-surface rounded-full text-text-primary"><Edit2 size={14} /></button>
+                    <button onClick={() => handleDelete(combo.id)} className="p-2 hover:bg-red-50 text-text-secondary hover:text-red-500 rounded-full"><Trash2 size={14} /></button>
+                  </div>
+               </div>
+               
+               <h3 className="font-serif text-xl text-text-primary mb-1">{combo.name}</h3>
+               <p className="text-2xl font-bold text-text-primary mb-4">₹{combo.price}</p>
+               
+               <div className="text-xs text-text-secondary space-y-1">
+                 <p className="uppercase tracking-widest font-bold opacity-60">Logic: {TEMPLATES.find(t => t.value === combo.template)?.label || combo.template}</p>
+                 <p className="italic">"{combo.description}"</p>
+               </div>
             </div>
-          </form>
+          ))
         )}
       </div>
     </motion.div>
   );
 };
+
 
 // --- MAIN DASHBOARD LAYOUT ---
 
