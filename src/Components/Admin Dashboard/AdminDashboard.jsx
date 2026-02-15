@@ -106,6 +106,13 @@ const ProductsManager = () => {
     setSaveError(''); setUploadError(''); setCurrentProduct(prod); setIsEditing(true);
   };
 
+  const CATEGORIES = [
+    'Core Variant', 
+    'Signature Variant', 
+    'Combo', 
+    'Gift Box', 
+  ];
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
       <div className="flex justify-between items-center bg-white/50 p-6 rounded-[2rem] border border-border/40 backdrop-blur-sm">
@@ -123,12 +130,31 @@ const ProductsManager = () => {
         <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="bg-white p-10 rounded-[2.5rem] border border-border/40 shadow-xl relative overflow-hidden">
           <h3 className="text-xl font-serif text-text-primary mb-8 border-b border-border/20 pb-4">{currentProduct.id ? 'Edit Item' : 'New Creation'}</h3>
           <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {['name', 'category'].map(field => (
-              <div key={field} className="space-y-2">
-                <label className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">{field}</label>
-                <input className="w-full bg-bg-surface border border-border/40 rounded-xl px-4 py-3 text-text-primary outline-none focus:border-primary-button transition-colors" value={currentProduct[field]} onChange={e => setCurrentProduct({...currentProduct, [field]: e.target.value})} />
-              </div>
-            ))}
+            
+            {/* Name Input */}
+            <div className="space-y-2">
+              <label className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">Name</label>
+              <input 
+                className="w-full bg-bg-surface border border-border/40 rounded-xl px-4 py-3 text-text-primary outline-none focus:border-primary-button transition-colors" 
+                value={currentProduct.name} 
+                onChange={e => setCurrentProduct({...currentProduct, name: e.target.value})} 
+              />
+            </div>
+
+            {/* Category Dropdown */}
+            <div className="space-y-2">
+              <label className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">Category</label>
+              <select 
+                className="w-full bg-bg-surface border border-border/40 rounded-xl px-4 py-3 text-text-primary outline-none focus:border-primary-button transition-colors cursor-pointer"
+                value={currentProduct.category} 
+                onChange={e => setCurrentProduct({...currentProduct, category: e.target.value})}
+              >
+                <option value="">Select Category</option>
+                {CATEGORIES.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
             {['price', 'stock'].map(field => (
               <div key={field} className="space-y-2">
                 <label className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">{field}</label>

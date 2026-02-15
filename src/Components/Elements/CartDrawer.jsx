@@ -10,7 +10,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
   const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [couponError, setCouponError] = useState('')
   const [showCouponInput, setShowCouponInput] = useState(false)
-  const { items: cartItems, setItemQuantity, removeItem: removeCartItem } = useCart()
+  const { items: cartItems, setItemQuantity, removeItem: removeCartItem, shipping } = useCart()
   const { promoCoupon } = usePromo()
 
   const validCoupons = {
@@ -39,7 +39,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
       ? (subtotal * appliedCoupon.discount) / 100 
       : appliedCoupon.discount
   }
-  const total = subtotal - discount
+  const total = subtotal - discount + (shipping || 0)
 
   return (
     <AnimatePresence>
@@ -169,6 +169,10 @@ const CartDrawer = ({ isOpen, onClose }) => {
                       <span>- Rs. {discount.toFixed(2)}</span>
                     </div>
                   )}
+                  <div className="flex justify-between text-xs tracking-widest uppercase text-text-secondary">
+                     <span>Delivery</span>
+                     <span>{shipping === 0 ? <span className="text-green-600 font-bold">Free</span> : `Rs. ${shipping.toFixed(2)}`}</span>
+                  </div>
                   <div className="flex justify-between text-2xl  text-text-primary pt-4 border-t border-border/10">
                     <span>Total</span>
                     <span>Rs. {total.toFixed(2)}</span>

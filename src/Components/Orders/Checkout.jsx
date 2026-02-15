@@ -28,7 +28,7 @@ import { db, functions } from '../../firebase';
 const Checkout = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const { items: cartItems, subtotal: cartSubtotal, clearCart } = useCart();
+  const { items: cartItems, subtotal: cartSubtotal, clearCart, shipping } = useCart();
   const { promoCoupon } = usePromo();
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
@@ -65,7 +65,7 @@ const Checkout = () => {
     'FLAT100': { discount: 100, type: 'fixed' },
   };
 
-  const shipping = 0;
+  // const shipping = 0; // Removed local constant
   
   let discount = 0;
   if (appliedCoupon) {
@@ -429,7 +429,9 @@ const Checkout = () => {
                 {discount > 0 && <div className="flex justify-between text-green-600"><span>Incentive</span><span>- ₹{discount.toFixed(2)}</span></div>}
                 <div className="flex justify-between items-center">
                     <span className="flex items-center gap-2"><Truck size={14} className="opacity-60" /> Delivery</span>
-                    <span className="text-green-600 font-bold">Complimentary</span>
+                    <span className={shipping === 0 ? "text-green-600 font-bold" : "text-text-primary font-bold"}>
+                        {shipping === 0 ? 'Complimentary' : `₹${shipping.toFixed(2)}`}
+                    </span>
                 </div>
                 <div className="flex justify-between text-2xl  text-text-primary pt-6 border-t border-border/20 mt-4 normal-case tracking-tight">
                   <span>Total</span><span>₹{finalTotal.toFixed(2)}</span>

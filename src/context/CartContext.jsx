@@ -205,18 +205,45 @@ export function CartProvider({ children }) {
     return items.reduce((sum, it) => sum + Number(it.price || 0) * Number(it.quantity || 0), 0)
   }, [items])
 
+  const shipping = useMemo(() => {
+    if (items.length === 0) return 0
+    
+    // Check if any item is a Combo or Gift Box
+    // We need to look up the product category. Since cart items might not have category, 
+    // we might need to rely on the name or fetch full product details.
+    // However, looking at productsData.js, the names for Combos contain "Combo" and Gift Boxes contain "Gift Box" 
+    // or we can try to pass category when adding to cart.
+    // Let's check what's stored in the cart. 
+    // The cart stores: id, productId, title, price, image, quantity.
+    // It does NOT store category.
+    // I should probably update the addItem function to store category as well, OR infer it from title.
+    // Inferring from title "Combo" or "Gift Box" seems safest given the current data structure without a major refactor.
+    
+    // Actually, let's just check the titles for now as per the requirements.
+    const hasComboOrGiftBox = items.some(item => 
+      item.title?.toLowerCase().includes('combo') || 
+      item.title?.toLowerCase().includes('gift box') ||
+      // Fallback if we add category to cart items later
+      item.category === 'Combo' ||
+      item.category === 'Gift Box'
+    )
+
+    return hasComboOrGiftBox ? 0 : 50
+  }, [items])
+
   const value = useMemo(() => {
     return {
       items,
       loading,
       totalQuantity,
       subtotal,
+      shipping, // Export shipping
       addItem,
       setItemQuantity,
       removeItem,
       clearCart,
     }
-  }, [addItem, clearCart, items, loading, removeItem, setItemQuantity, subtotal, totalQuantity])
+  }, [addItem, clearCart, items, loading, removeItem, setItemQuantity, subtotal, totalQuantity, shipping])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }
