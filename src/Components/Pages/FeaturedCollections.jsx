@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Gift, Package } from 'lucide-react';
+import buildBoxImg from '../../assets/build-box.png';
 
 const FeaturedCollections = () => {
   const collections = [
@@ -12,7 +13,7 @@ const FeaturedCollections = () => {
       link: "/custom",
       icon: <Package size={32} />,
       bgClass: "bg-[#FDF6F0]", // Warm beige/cream
-      image: "https://images.unsplash.com/photo-1628746766624-d2eew17d1216?q=80&w=1000" // Placeholder or actual image
+      image: buildBoxImg // Use local imported image
     },
     {
       id: 2,
