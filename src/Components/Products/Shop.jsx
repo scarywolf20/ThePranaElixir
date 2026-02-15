@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Search, Filter, ChevronDown, X, SlidersHorizontal, Heart } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
 import { useAuth } from '../../context/useAuth';
@@ -22,9 +22,20 @@ import {
 
 const Shop = () => {
   // --- STATE ---
+  const location = useLocation();
   const [showFilters, setShowFilters] = useState(false); // Toggle State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const cat = params.get('category');
+    if (cat) {
+      setSelectedCategory(cat);
+      setShowFilters(true); // Open filters so user sees what's selected
+    }
+  }, [location.search]);
+
   const [sortOption, setSortOption] = useState("featured");
 
   const [products, setProducts] = useState([]);

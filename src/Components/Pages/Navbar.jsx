@@ -86,9 +86,15 @@ const Navbar = () => {
                         exit={{ opacity: 0, y: 10 }} 
                         className="absolute top-full right-0 mt-2 w-56 bg-bg-surface shadow-xl border border-border/20 py-4 z-[110]"
                       >
-                        {['Soaps', 'Candles', 'Wax Tablets', 'Gift Boxes'].map((item) => (
-                          <Link key={item} to="/shop" className="block px-6 py-2 text-sm text-text-primary hover:bg-bg-section hover:text-primary-button transition-colors">
-                            {item}
+                        {[
+                          { label: 'Core Collection', link: '/shop?category=Core Variant' },
+                          { label: 'Signature Series', link: '/shop?category=Signature Variant' },
+                          // { label: 'Combos', link: '/shop?category=Combo' },
+                          // { label: 'Gifting', link: '/shop?category=Gift Box' },
+                          { label: 'Build Your Own', link: '/custom' }
+                        ].map((item) => (
+                          <Link key={item.label} to={item.link} className="block px-6 py-2 text-sm text-text-primary hover:bg-bg-section hover:text-primary-button transition-colors">
+                            {item.label}
                           </Link>
                         ))}
                       </motion.div>
@@ -155,9 +161,15 @@ const Navbar = () => {
                     
                     {link.hasDropdown && isMobileShopOpen && (
                       <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} className="mt-4 flex flex-col gap-4 pl-4 overflow-hidden border-l border-border/20">
-                        {['Soaps', 'Candles', 'Wax Tablets', 'Gift Boxes'].map(sub => (
-                          <Link key={sub} to="/shop" onClick={() => setIsMobileMenuOpen(false)} className="text-lg text-text-secondary lowercase hover:text-primary-button">
-                            {sub}
+                        {[
+                          { label: 'Core Collection', link: '/shop?category=Core Variant' },
+                          { label: 'Signature Series', link: '/shop?category=Signature Variant' },
+                          { label: 'Combos', link: '/shop?category=Combo' },
+                          { label: 'Gifting', link: '/shop?category=Gift Box' },
+                          { label: 'Build Your Own', link: '/custom' }
+                        ].map(sub => (
+                          <Link key={sub.label} to={sub.link} onClick={() => setIsMobileMenuOpen(false)} className="text-lg text-text-secondary lowercase hover:text-primary-button">
+                            {sub.label}
                           </Link>
                         ))}
                       </motion.div>
