@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import SEO from '../Elements/SEO';
 import emailjs from '@emailjs/browser';
 import { Send, Gift, CheckCircle, Package, Plus, X, ShoppingBag } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
@@ -140,6 +141,10 @@ const Custom = () => {
 
   return (
     <div className="bg-bg-main min-h-screen flex flex-col font-sans selection:bg-primary-button/20">
+      <SEO 
+        title="Custom Curations & Combos" 
+        description="Curate your own bespoke wellness and skincare box. Build custom combos with our handcrafted organic soaps."
+      />
       <Navbar />
 
       {/* --- HERO SECTION --- */}

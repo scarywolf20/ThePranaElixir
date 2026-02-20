@@ -68,15 +68,27 @@ const HeroCarousel = () => {
           </motion.div>
 
           <div className="relative h-full max-w-7xl mx-auto px-6 md:px-12 flex flex-col justify-center items-start">
-            <div className="overflow-hidden">
-              <motion.h2 
+            <div className="overflow-hidden max-w-4xl space-y-6">
+              <motion.h1 
                 initial={{ y: "100%", opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.8, ease: "circOut" }}
-                className="text-white text-3xl md:text-8xl font-serif tracking-[0.2em] mb-8 "
+                className="text-white text-4xl md:text-7xl lg:text-8xl font-serif tracking-wide leading-tight drop-shadow-lg"
               >
-                {effectiveSlides[currentIndex].title}
-              </motion.h2>
+                The Prana Elixir <br/>
+                <span className="text-2xl md:text-4xl lg:text-5xl font-light italic text-white/90 tracking-normal drop-shadow-md">
+                  – {effectiveSlides[currentIndex].title}
+                </span>
+              </motion.h1>
+              
+              <motion.p
+                 initial={{ y: 20, opacity: 0 }}
+                 animate={{ y: 0, opacity: 1 }}
+                 transition={{ delay: 0.6, duration: 0.8 }}
+                 className="text-white/90 text-sm md:text-lg lg:text-xl font-light tracking-wide max-w-2xl leading-relaxed drop-shadow-md"
+              >
+                Crafted by an doctor, our artisanal cold-process soaps and pure botanical skincare blends are designed to nurture your skin and elevate your daily wellness rituals. Embrace the essence of holistic living, free from harsh chemicals.
+              </motion.p>
             </div>
 
             <motion.div

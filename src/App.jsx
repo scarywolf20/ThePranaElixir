@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
+import SEO from './Components/Elements/SEO'
 import Navbar from "./Components/Pages/Navbar"
 import HeroCarousel from "./Components/Pages/HeroCarousel"
 import ProductsSection from "./Components/Pages/Products"
@@ -94,6 +96,14 @@ function App() {
         {/* Main website route */}
         <Route path="/" element={
           <div className="relative">
+            <SEO 
+              title="The Prana Elixir – Holistic Wellness & Natural Skincare" 
+              description="Welcome to The Prana Elixir. Handcrafted cold process soaps and pure Ayurvedic skincare for your wellness." 
+            />
+            {/* Request indexing for homepage only */}
+            <Helmet>
+              <meta name="robots" content="index, follow" />
+            </Helmet>
             <Navbar />
             <HeroCarousel />
             <Features />

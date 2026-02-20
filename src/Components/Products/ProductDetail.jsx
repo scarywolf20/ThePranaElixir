@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import SEO from '../Elements/SEO';
 import { ArrowLeft, Minus, Plus, ShoppingBag, Heart } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
 import { useAuth } from '../../context/useAuth';
@@ -121,6 +122,11 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen bg-bg-main">
+      <SEO 
+        title={product.name} 
+        description={product.description.substring(0, 150) + '...'} 
+        image={product.imageUrl} 
+      />
       <Navbar />
       
       <div className="container mx-auto px-4 py-8 md:py-12">

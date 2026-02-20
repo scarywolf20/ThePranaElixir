@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import SEO from '../Elements/SEO';
 import { Leaf, Heart, Sparkles, Sprout } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
 import Footer from '../Pages/Footer';
@@ -28,6 +29,10 @@ const Story = () => {
 
   return (
     <div className="bg-bg-main min-h-screen flex flex-col font-sans selection:bg-primary-button selection:text-white">
+      <SEO 
+        title="Our Story" 
+        description="Founded by an Ayurvedic doctor, learn about our journey, ethical sourcing, and commitment to pure, natural skincare."
+      />
       <Navbar />
 
       {/* --- HERO SECTION --- */}

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import SEO from '../Elements/SEO';
 import { Search, Filter, ChevronDown, X, SlidersHorizontal, Heart } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
 import { useAuth } from '../../context/useAuth';
@@ -196,6 +197,10 @@ const Shop = () => {
 
   return (
     <div className="min-h-screen bg-bg-main font-sans">
+      <SEO 
+        title="Shop All Products" 
+        description="Browse our collection of handcrafted cold process soaps, natural wellness products, and pure Ayurvedic skincare essentials." 
+      />
       <Navbar />
       
       <div className="container mx-auto px-4 py-12 md:py-20">

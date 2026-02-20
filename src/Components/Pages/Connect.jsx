@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
+import SEO from '../Elements/SEO';
 import { Mail, MapPin, Phone, Send, ArrowRight } from 'lucide-react';
 import Navbar from '../Pages/Navbar';
 import Footer from '../Pages/Footer';
@@ -66,6 +67,10 @@ export default function Contact() {
 
   return (
     <div className="bg-bg-main min-h-screen flex flex-col">
+      <SEO 
+        title="Contact Us" 
+        description="Get in touch with The Prana Elixir team. We'd love to hear from you regarding inquiries, collaborations, or custom orders."
+      />
       <Navbar />
 
       <section 
